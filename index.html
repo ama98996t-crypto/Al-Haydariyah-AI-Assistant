@@ -1,0 +1,486 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مستشفى الحيدرية العام</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+:root{--blue:#105783;--light:#eaf4fa;--gold:#c5a66a;--ink:#18364c;--muted:#718494;--line:#dce7ee}
+*{box-sizing:border-box}
+body{margin:0;font-family:Cairo,sans-serif;color:var(--ink);background:#fff;line-height:1.8}
+button,input,textarea,select{font:inherit}
+a{text-decoration:none;color:inherit}
+.container{width:min(1100px,93%);margin:auto}
+header{background:white;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.nav{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:14px 0;flex-wrap:wrap}
+.brand{font-weight:800;color:var(--blue);font-size:18px}
+.brand small{display:block;color:var(--muted);font-size:11px}
+nav{display:flex;gap:14px;flex-wrap:wrap;font-size:13px}
+nav a:hover{color:var(--blue)}
+.hero{background:linear-gradient(120deg,#073b61,#1675aa);color:white;padding:55px 0}
+.hero-grid{display:grid;grid-template-columns:1fr 250px;gap:25px;align-items:center}
+.hero h1{font-size:clamp(30px,5vw,48px);margin:5px 0}
+.hero p{color:#e0edf5}
+.eyebrow{color:var(--gold);font-weight:800;font-size:12px}
+.emergency{background:white;color:var(--blue);padding:22px;border-radius:17px;text-align:center}
+.emergency strong{display:block;font-size:60px;color:#c44}
+.emergency a{display:block;background:#f9eeee;padding:7px;border-radius:8px;color:#a33}
+.btn{border:0;border-radius:9px;padding:10px 17px;cursor:pointer;font-weight:700}
+.primary{background:var(--blue);color:white}
+.secondary{background:var(--light);color:var(--blue)}
+.light{background:white;color:var(--blue)}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin:20px 0}
+.section{padding:48px 0}
+.tint{background:#f3f8fb}
+.heading{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:20px}
+h2{margin:0;font-size:25px}
+.heading p{font-size:12px;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.card,.panel{background:white;border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 8px 25px #1232}
+.card h3{margin:5px 0;color:var(--blue)}
+.card p{font-size:13px;color:var(--muted);white-space:pre-line}
+.icon{width:38px;height:38px;background:var(--light);color:var(--blue);display:grid;place-items:center;border-radius:12px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat{background:white;padding:18px;border:1px solid var(--line);border-radius:12px}
+.stat strong{font-size:25px;color:var(--blue);display:block}
+.stat span{font-size:12px;color:var(--muted)}
+label{display:block;font-size:13px;font-weight:700;margin:10px 0}
+input,textarea,select{width:100%;padding:10px;border:1px solid #cddbe4;border-radius:8px;background:white;margin-top:4px}
+textarea{resize:vertical}
+.forms{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.notice{font-size:13px;white-space:pre-line;color:var(--blue)}
+.chat{background:white;border:1px solid var(--line);border-radius:15px;padding:15px;max-width:800px}
+.chatlog{height:220px;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:8px}
+.msg{padding:9px 13px;border-radius:12px;max-width:90%;font-size:13px;white-space:pre-line}
+.bot{background:var(--light);align-self:flex-start}
+.user{background:var(--blue);color:white;align-self:flex-end}
+.chat form{display:flex;gap:7px;border-top:1px solid var(--line);padding-top:10px}
+.chat form input{flex:1}
+footer{padding:25px 0;background:#092f4c;color:#dce8f0;font-size:12px}
+.admin{display:none}
+.admin .panel{margin:18px 0}
+.tabs{display:flex;gap:7px;flex-wrap:wrap;margin:15px 0}
+.tabs button{background:white;border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}
+.tabs button.active{background:var(--blue);color:white}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{text-align:right;padding:9px;border-bottom:1px solid var(--line);vertical-align:top}
+.tablewrap{overflow:auto}
+.small{font-size:11px;padding:5px 9px}
+.hidden{display:none!important}
+@media(max-width:700px){
+ .hero-grid,.forms{grid-template-columns:1fr}
+ .cards{grid-template-columns:1fr 1fr}
+ .stats{grid-template-columns:1fr 1fr}
+ .heading{display:block}
+ nav{width:100%;overflow:auto;white-space:nowrap}
+}
+@media(max-width:420px){.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+<div class="container nav">
+<a class="brand" href="#">✚ مستشفى الحيدرية العام
+<small>النجف الأشرف – العراق</small></a>
+<nav>
+<a href="#departments">الأقسام</a>
+<a href="#doctors">الأطباء</a>
+<a href="#services">الخدمات</a>
+<a href="#stats">الإحصائيات</a>
+<a href="#complaints">الشكاوى</a>
+<a href="#admin-login">الإدارة</a>
+</nav>
+</div>
+</header>
+
+<main id="public-site">
+<section class="hero">
+<div class="container hero-grid">
+<div>
+<span class="eyebrow">رعاية صحية وخدمة مجتمعية</span>
+<h1>مستشفى الحيدرية العام</h1>
+<p>منصة معلوماتية لخدمة المراجعين والمرضى، والتعريف بأقسام المستشفى وخدماته وطرق التواصل.</p>
+<div class="actions">
+<a class="btn light" href="#departments">استكشف الأقسام</a>
+<a class="btn secondary" href="#complaints">الشكاوى والمقترحات</a>
+</div>
+<p>مدير المستشفى: الدكتور رائد رسول الموسوي</p>
+<p>المعاون المدير الفني: الدكتور أحمد الركابي</p>
+</div>
+<div class="emergency">
+<span>رقم الطوارئ</span>
+<strong>109</strong>
+<p>للحالات الطارئة</p>
+<a href="tel:109">اتصال مباشر</a>
+</div>
+</div>
+</section>
+
+<section class="container section" id="departments">
+<div class="heading"><h2>أقسام المستشفى</h2><span class="eyebrow">مرافقنا الطبية</span></div>
+<div class="cards" id="departments-list">جارٍ تحميل البيانات...</div>
+</section>
+
+<section class="section tint" id="doctors">
+<div class="container">
+<div class="heading"><h2>الأطباء والاختصاصات</h2></div>
+<div class="cards" id="doctors-list">جارٍ تحميل البيانات...</div>
+</div>
+</section>
+
+<section class="container section" id="services">
+<div class="heading"><h2>الخدمات الطبية</h2></div>
+<div class="cards" id="services-list">جارٍ تحميل البيانات...</div>
+</section>
+
+<section class="section tint" id="stats">
+<div class="container">
+<div class="heading">
+<h2>إحصائيات المستشفى</h2>
+<span class="eyebrow">2026 – لغاية نهاية الشهر 11</span>
+</div>
+<div class="stats" id="stats-list">جارٍ تحميل الإحصائيات...</div>
+</div>
+</section>
+
+<section class="container section" id="hours">
+<div class="heading"><h2>أوقات الدوام والعيادات</h2></div>
+<div class="cards" id="hours-list"></div>
+</section>
+
+<section class="section tint">
+<div class="container">
+<div class="heading"><h2>المساعد المعلوماتي للمستشفى</h2></div>
+<div class="chat">
+<div class="chatlog" id="chatlog">
+<div class="msg bot">مرحباً بك. اسأل عن أقسام المستشفى وخدماته ومعلوماته المنشورة.</div>
+</div>
+<form id="chat-form">
+<input id="chat-question" placeholder="اكتب سؤالك..." required>
+<button class="btn primary">إرسال</button>
+</form>
+</div>
+<p class="notice">هذا المساعد للمعلومات العامة فقط، ولا يقدم تشخيصاً أو وصفات علاجية. للطوارئ اتصل بالرقم 109.</p>
+</div>
+</section>
+
+<section class="section container" id="complaints">
+<div class="heading">
+<h2>الشكاوى والمقترحات</h2>
+<p>يمكنك إرسال طلبك ومتابعة الرد بسرية.</p>
+</div>
+<div class="forms">
+<form class="panel" id="complaint-form">
+<h3>إرسال طلب جديد</h3>
+<label>الاسم<input name="full_name" required maxlength="120"></label>
+<label>رقم الهاتف<input name="phone" required maxlength="30"></label>
+<label>نوع الطلب
+<select name="request_type"><option>شكوى</option><option>اقتراح</option></select>
+</label>
+<label>تفاصيل الطلب<textarea name="message" rows="5" required maxlength="4000"></textarea></label>
+<button class="btn primary">إرسال الطلب</button>
+<div id="complaint-result" class="notice"></div>
+</form>
+
+<form class="panel" id="track-form">
+<h3>متابعة طلب سابق</h3>
+<label>رقم المتابعة<input name="tracking_code" required></label>
+<label>رمز الوصول السري<input name="access_token" required></label>
+<button class="btn secondary">متابعة الطلب</button>
+<div id="track-result" class="notice"></div>
+</form>
+</div>
+</section>
+</main>
+
+<section class="admin container section" id="admin-area">
+<div class="heading">
+<h2>لوحة إدارة مستشفى الحيدرية</h2>
+<button class="btn secondary" id="logout">تسجيل الخروج</button>
+</div>
+<div class="tabs" id="tabs">
+<button data-table="hospital_departments">الأقسام</button>
+<button data-table="hospital_doctors">الأطباء</button>
+<button data-table="hospital_services">الخدمات</button>
+<button data-table="hospital_working_hours">الدوام</button>
+<button data-table="hospital_contacts">الاتصالات</button>
+<button data-table="hospital_service_statistics">الإحصائيات</button>
+<button data-table="hospital_complaints">الشكاوى</button>
+</div>
+<div class="panel">
+<div class="heading">
+<h3 id="table-title">إدارة البيانات</h3>
+<button class="btn primary" id="add-record">إضافة سجل</button>
+</div>
+<div id="editor"></div>
+<div class="tablewrap">
+<table><thead id="thead"></thead><tbody id="tbody"></tbody></table>
+</div>
+<p id="admin-message" class="notice"></p>
+</div>
+</section>
+
+<section class="container section" id="admin-login">
+<div class="panel" style="max-width:450px;margin:auto">
+<h2>دخول الإدارة</h2>
+<form id="login-form">
+<label>البريد الإلكتروني<input name="email" type="email" required></label>
+<label>كلمة المرور<input name="password" type="password" required></label>
+<button class="btn primary">تسجيل الدخول</button>
+<p id="login-message" class="notice"></p>
+</form>
+</div>
+</section>
+
+<footer>
+<div class="container">
+<strong>مستشفى الحيدرية العام</strong>
+<p>الحيدرية – محافظة النجف الأشرف – العراق</p>
+<p>وحدة الإعلام · جميع الحقوق محفوظة</p>
+</div>
+</footer>
+
+<script>
+/* إعداد الاتصال السحابي */
+const SUPABASE_URL="https://dwffkopuisuyqpgedowp.supabase.co";
+const SUPABASE_KEY="sb_publishable_2wT5I3b3mY1IPzbFN5NllQ_Ja136LJn";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=s=>document.querySelector(s);
+let currentUser=null;
+let currentTable="hospital_departments";
+let rows=[];
+
+const configs={
+hospital_departments:{
+title:"الأقسام",
+fields:["name","description","location","floor","phone","display_order","is_published"],
+labels:["اسم القسم","الوصف","الموقع","الطابق","الهاتف","ترتيب العرض","منشور"]
+},
+hospital_doctors:{
+title:"الأطباء",
+fields:["full_name","specialty","department_id","bio","schedule","display_order","is_published"],
+labels:["اسم الطبيب","الاختصاص","معرّف القسم","نبذة","الدوام","ترتيب العرض","منشور"]
+},
+hospital_services:{
+title:"الخدمات",
+fields:["name","description","department_id","requirements","schedule","display_order","is_published"],
+labels:["اسم الخدمة","الوصف","معرّف القسم","المتطلبات","الجدول","ترتيب العرض","منشور"]
+},
+hospital_working_hours:{
+title:"الدوام",
+fields:["title","days","start_time","end_time","notes","is_published"],
+labels:["العنوان","الأيام","من","إلى","ملاحظات","منشور"]
+},
+hospital_contacts:{
+title:"الاتصالات",
+fields:["title","phone","notes","display_order","is_published"],
+labels:["العنوان","الهاتف","ملاحظات","ترتيب العرض","منشور"]
+},
+hospital_service_statistics:{
+title:"الإحصائيات",
+fields:["metric_name","metric_value","period_label","display_order","is_published"],
+labels:["اسم المؤشر","العدد","الفترة","ترتيب العرض","منشور"]
+}
+};
+
+function escapeHTML(v=""){
+return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function card(icon,title,description){
+return `<article class="card"><div class="icon">${icon}</div><h3>${escapeHTML(title)}</h3><p>${escapeHTML(description||"")}</p></article>`;
+}
+
+async function loadPublic(){
+const tasks=[
+["hospital_departments","departments-list","name",x=>[x.description,x.location,x.floor].filter(Boolean).join(" · "),"✚"],
+["hospital_doctors","doctors-list","full_name",x=>[x.specialty,x.schedule,x.bio].filter(Boolean).join(" · "),"⚕"],
+["hospital_services","services-list","name",x=>[x.description,x.requirements,x.schedule].filter(Boolean).join(" · "),"＋"]
+];
+for(const [table,target,field,desc,icon] of tasks){
+const {data,error}=await db.from(table).select("*").eq("is_published",true).order("display_order");
+$( "#"+target).innerHTML=error?"تعذر تحميل البيانات":data.length?data.map(x=>card(icon,x[field],desc(x))).join(""):"لا توجد معلومات منشورة حالياً.";
+}
+const {data:stats}=await db.from("hospital_service_statistics").select("*").eq("is_published",true).order("display_order");
+$("#stats-list").innerHTML=stats?.length?stats.map(x=>`<div class="stat"><strong>${Number(x.metric_value).toLocaleString("en-US")}</strong><span>${escapeHTML(x.metric_name)}<br>${escapeHTML(x.period_label||"")}</span></div>`).join(""):"لا توجد إحصائيات منشورة.";
+const {data:hours}=await db.from("hospital_working_hours").select("*").eq("is_published",true);
+$("#hours-list").innerHTML=hours?.length?hours.map(x=>card("◷",x.title,[x.days,x.start_time&&x.start_time+" - "+x.end_time,x.notes].filter(Boolean).join(" · "))).join(""):"لا توجد أوقات منشورة حالياً.";
+}
+
+/* المساعد المعلوماتي: يعتمد على البيانات المخزونة */
+async function askAssistant(question){
+const q=question.toLowerCase();
+if(["طارئ","طوارئ","حادث","نزيف","اختناق","صعقة","فاقد الوعي"].some(x=>q.includes(x)))
+return "إذا كانت الحالة طارئة، توجّه إلى قسم الطوارئ أو اتصل بالرقم 109. لا أستطيع تشخيص الحالة أو وصف العلاج.";
+if(q.includes("109")||q.includes("طوارئ"))return "رقم الطوارئ هو 109.";
+if(q.includes("مدير"))return "مدير المستشفى هو الدكتور رائد رسول الموسوي.";
+if(q.includes("عنوان")||q.includes("موقع"))return "المستشفى يقع في الحيدرية – محافظة النجف الأشرف – العراق.";
+if(q.includes("شكوى")||q.includes("اقتراح"))return "يمكنك إرسال شكوى أو اقتراح من قسم الشكاوى في هذه الصفحة، ثم احتفظ برقم المتابعة ورمز الوصول.";
+if(q.includes("قسم")||q.includes("أقسام")){
+const {data}=await db.from("hospital_departments").select("name").eq("is_published",true);
+return data?.length?"الأقسام المنشورة: "+data.map(x=>x.name).join("، "):"لا توجد أقسام منشورة حالياً.";
+}
+if(q.includes("طبيب")||q.includes("دكتور")||q.includes("اختصاص")){
+const {data}=await db.from("hospital_doctors").select("full_name,specialty").eq("is_published",true);
+return data?.length?data.map(x=>x.full_name+" – "+x.specialty).join("\n"):"لا توجد أسماء أطباء منشورة حالياً.";
+}
+if(q.includes("دوام")||q.includes("موعد")){
+const {data}=await db.from("hospital_working_hours").select("title,days,start_time,end_time").eq("is_published",true);
+return data?.length?data.map(x=>[x.title,x.days,x.start_time,x.end_time].filter(Boolean).join(" – ")).join("\n"):"أوقات الدوام غير منشورة حالياً.";
+}
+if(q.includes("خدمات")){
+const {data}=await db.from("hospital_services").select("name,description").eq("is_published",true);
+return data?.length?data.map(x=>x.name+" – "+(x.description||"")).join("\n"):"لا توجد خدمات منشورة حالياً.";
+}
+return "لا أملك معلومة مؤكدة عن هذا السؤال. يرجى مراجعة القسم المختص أو إدارة المستشفى.";
+}
+function bubble(text,type){
+const el=document.createElement("div");
+el.className="msg "+type;
+el.textContent=text;
+$("#chatlog").append(el);
+$("#chatlog").scrollTop=$("#chatlog").scrollHeight;
+}
+$("#chat-form").addEventListener("submit",async e=>{
+e.preventDefault();
+const q=$("#chat-question").value.trim();
+if(!q)return;
+$("#chat-question").value="";
+bubble(q,"user");
+bubble(await askAssistant(q),"bot");
+});
+
+/* إرسال الشكاوى عبر الوظيفة السحابية */
+$("#complaint-form").addEventListener("submit",async e=>{
+e.preventDefault();
+const out=$("#complaint-result");
+out.textContent="جارٍ إرسال الطلب...";
+const payload=Object.fromEntries(new FormData(e.currentTarget).entries());
+const {data,error}=await db.functions.invoke("hospital-complaints",{body:{action:"submit",...payload}});
+if(error||!data?.tracking_code){
+out.textContent="تعذر إرسال الطلب. حاول مرة أخرى لاحقاً.";
+return;
+}
+out.textContent="تم استلام طلبك.\nرقم المتابعة: "+data.tracking_code+"\nرمز الوصول السري: "+data.access_token+"\nاحتفظ بالرمز لمتابعة الرد.";
+e.currentTarget.reset();
+});
+$("#track-form").addEventListener("submit",async e=>{
+e.preventDefault();
+const out=$("#track-result");
+out.textContent="جارٍ البحث...";
+const payload=Object.fromEntries(new FormData(e.currentTarget).entries());
+const {data,error}=await db.functions.invoke("hospital-complaints",{body:{action:"track",...payload}});
+if(error||!data){
+out.textContent="تعذر العثور على الطلب. تأكد من رقم المتابعة ورمز الوصول.";
+return;
+}
+out.textContent="حالة الطلب: "+data.status+"\n"+((data.replies||[]).map(x=>"رد الإدارة: "+x.reply).join("\n")||"لا توجد ردود حتى الآن.");
+});
+
+/* تسجيل دخول الإدارة */
+$("#login-form").addEventListener("submit",async e=>{
+e.preventDefault();
+const f=Object.fromEntries(new FormData(e.currentTarget).entries());
+$("#login-message").textContent="جارٍ التحقق...";
+const {data,error}=await db.auth.signInWithPassword({email:f.email,password:f.password});
+if(error){$("#login-message").textContent="فشل الدخول. تحقق من البريد وكلمة المرور.";return;}
+currentUser=data.user;
+const {data:admin,error:adminError}=await db.from("hospital_admins").select("role").eq("user_id",currentUser.id).maybeSingle();
+if(adminError||!admin){
+await db.auth.signOut();
+$("#login-message").textContent="هذا الحساب غير مخوّل. يجب إضافته إلى جدول مديري المستشفى.";
+return;
+}
+$("#public-site").classList.add("hidden");
+$("#admin-login").classList.add("hidden");
+$("#admin-area").style.display="block";
+await loadTable(currentTable);
+});
+$("#logout").onclick=async()=>{await db.auth.signOut();location.reload();};
+
+/* إدارة الجداول */
+async function loadTable(table){
+currentTable=table;
+$("#table-title").textContent=table==="hospital_complaints"?"الشكاوى والمقترحات":configs[table].title;
+$("#editor").innerHTML="";
+$("#admin-message").textContent="";
+if(table==="hospital_complaints"){await loadComplaints();return;}
+const {data,error}=await db.from(table).select("*").order("created_at",{ascending:false});
+if(error){$("#admin-message").textContent=error.message;return;}
+rows=data||[];
+const c=configs[table];
+$("#thead").innerHTML="<tr>"+c.labels.map(x=>"<th>"+x+"</th>").join("")+"<th>إجراءات</th></tr>";
+$("#tbody").innerHTML=rows.map((r,i)=>"<tr>"+c.fields.map(f=>"<td>"+escapeHTML(f==="is_published"?(r[f]?"نعم":"لا"):r[f])+"</td>").join("")+`<td><button class="btn secondary small" onclick="editRow(${i})">تعديل</button> <button class="btn small" onclick="deleteRow('${r.id}')">حذف</button></td></tr>`).join("");
+}
+function editRow(index){
+const row=rows[index]||{};
+const c=configs[currentTable];
+$("#editor").innerHTML=c.fields.map((f,i)=>{
+if(f==="is_published")return `<label><input type="checkbox" id="f-${f}" ${row[f]?"checked":""}> ${c.labels[i]}</label>`;
+return `<label>${c.labels[i]}<input id="f-${f}" value="${escapeHTML(row[f]??"")}"></label>`;
+}).join("")+`<button class="btn primary" id="save">حفظ</button> <button class="btn secondary" onclick="document.getElementById('editor').innerHTML=''">إلغاء</button>`;
+$("#save").onclick=async()=>{
+const obj={};
+c.fields.forEach(f=>{
+const el=$("#f-"+f);
+obj[f]=f==="is_published"?el.checked:el.value.trim()||null;
+});
+if(obj.display_order!==undefined)obj.display_order=Number(obj.display_order||0);
+if(obj.metric_value!==undefined)obj.metric_value=Number(obj.metric_value||0);
+let query=row.id?db.from(currentTable).update(obj).eq("id",row.id):db.from(currentTable).insert(obj);
+const {error}=await query;
+if(error){$("#admin-message").textContent=error.message;return;}
+$("#editor").innerHTML="";
+await loadTable(currentTable);
+};
+}
+$("#add-record").onclick=()=>editRow(-1);
+async function deleteRow(id){
+if(!confirm("هل تريد حذف هذا السجل؟"))return;
+const {error}=await db.from(currentTable).delete().eq("id",id);
+$("#admin-message").textContent=error?.message||"تم الحذف.";
+await loadTable(currentTable);
+}
+document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",async()=>{
+document.querySelectorAll("#tabs button").forEach(x=>x.classList.remove("active"));
+b.classList.add("active");
+await loadTable(b.dataset.table);
+}));
+
+/* عرض الشكاوى والرد عليها من لوحة الإدارة */
+async function loadComplaints(){
+const {data,error}=await db.from("hospital_complaints").select("id,tracking_code,full_name,phone,request_type,message,status,created_at").order("created_at",{ascending:false});
+if(error){$("#admin-message").textContent=error.message;return;}
+rows=data||[];
+$("#thead").innerHTML="<tr><th>رقم المتابعة</th><th>الاسم</th><th>الهاتف</th><th>النوع</th><th>التفاصيل</th><th>الحالة</th><th>رد الإدارة</th></tr>";
+$("#tbody").innerHTML=rows.map((r,i)=>`<tr>
+<td>${escapeHTML(r.tracking_code)}</td>
+<td>${escapeHTML(r.full_name)}</td>
+<td>${escapeHTML(r.phone)}</td>
+<td>${escapeHTML(r.request_type)}</td>
+<td>${escapeHTML(r.message)}</td>
+<td><select id="status-${i}"><option ${r.status==="جديدة"?"selected":""}>جديدة</option><option ${r.status==="قيد المراجعة"?"selected":""}>قيد المراجعة</option><option ${r.status==="تم الرد"?"selected":""}>تم الرد</option><option ${r.status==="مغلقة"?"selected":""}>مغلقة</option></select><button class="btn secondary small" onclick="changeStatus(${i})">حفظ</button></td>
+<td><input id="reply-${i}" placeholder="اكتب الرد"><button class="btn primary small" onclick="sendReply(${i})">إرسال</button></td>
+</tr>`).join("");
+}
+async function changeStatus(i){
+const {error}=await db.from("hospital_complaints").update({status:$("#status-"+i).value}).eq("id",rows[i].id);
+$("#admin-message").textContent=error?.message||"تم تحديث الحالة.";
+}
+async function sendReply(i){
+const reply=$("#reply-"+i).value.trim();
+if(!reply)return;
+const {error}=await db.from("hospital_complaint_replies").insert({complaint_id:rows[i].id,reply,admin_user_id:currentUser.id});
+if(error){$("#admin-message").textContent=error.message;return;}
+await db.from("hospital_complaints").update({status:"تم الرد"}).eq("id",rows[i].id);
+$("#admin-message").textContent="تم إرسال الرد الخاص.";
+await loadComplaints();
+}
+
+loadPublic();
+</script>
+</body>
+</html>
