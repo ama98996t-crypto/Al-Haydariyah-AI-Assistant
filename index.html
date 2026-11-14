@@ -116,7 +116,8 @@ header{height:65px;padding:0 13px}
 <h2 style="margin:0 0 8px;font-size:23px">المساعد الحيدري</h2>
 <div id="callStatus" style="color:#d8e7ef;font-size:14px;margin-bottom:30px">اضغط بدء المكالمة واسمح باستخدام المايكروفون</div>
 <div id="callTranscript" style="min-height:64px;max-width:520px;line-height:1.9;color:#eef5f8;font-size:13px;margin-bottom:25px"></div>
-<div style="display:flex;gap:14px;align-items:center">
+<div style="display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap">
+<button id="callTestVoice" style="background:#ffffff;color:#0b3554;border:0;border-radius:30px;padding:12px 17px;font-weight:700">اختبار الصوت</button>
 <button id="callStart" style="background:#c8aa70;color:#0b3554;border:0;border-radius:30px;padding:14px 25px;font-weight:700">بدء المكالمة</button>
 <button id="callEnd" style="background:#b93636;color:white;border:0;border-radius:30px;padding:14px 25px;font-weight:700">إنهاء</button>
 </div>
@@ -186,27 +187,49 @@ function speakCallReply(text){
   if(!("speechSynthesis" in window)||!("SpeechSynthesisUtterance" in window)){reject(new Error("speech unavailable"));return;}
   const synth=window.speechSynthesis;
   synth.cancel();
+  if(typeof synth.resume==="function")synth.resume();
   const u=new SpeechSynthesisUtterance(text);
   const voice=chooseArabicVoice();
-  if(voice){u.voice=voice;u.lang=voice.lang;}else{u.lang="ar-SA";}
-  u.rate=0.9;u.pitch=1;u.volume=1;
+  u.lang=voice?voice.lang:"ar-SA";
+  if(voice)u.voice=voice;
+  u.rate=0.88;u.pitch=1;u.volume=1;
   let finished=false;
-  const done=()=>{if(finished)return;finished=true;resolve();};
+  const cleanup=()=>{u.onend=null;u.onerror=null;};
+  const done=()=>{if(finished)return;finished=true;cleanup();resolve();};
   u.onend=done;
-  u.onerror=e=>{if(finished)return;finished=true;reject(e.error||new Error("speech error"));};
-  // Android browsers sometimes need voices to finish loading before speaking.
+  u.onerror=e=>{if(finished)return;finished=true;cleanup();reject(new Error(e.error||"speech error"));};
+  // Wait briefly for Android voices, then speak exactly once.
   const voices=synth.getVoices();
-  if(!voices.length && synth.onvoiceschanged!==undefined){
-    const previous=synth.onvoiceschanged;
-    synth.onvoiceschanged=()=>{synth.onvoiceschanged=previous;setTimeout(()=>synth.speak(u),150);};
-    setTimeout(()=>{if(!finished&&synth.speaking===false)synth.speak(u);},700);
-  }else{setTimeout(()=>synth.speak(u),100);}
+  if(!voices.length){
+   let started=false;
+   const startSpeaking=()=>{
+    if(started||finished)return;
+    started=true;
+    synth.onvoiceschanged=null;
+    if(typeof synth.resume==="function")synth.resume();
+    synth.speak(u);
+   };
+   synth.onvoiceschanged=startSpeaking;
+   setTimeout(startSpeaking,900);
+  }else{
+   synth.speak(u);
+  }
  });
 }
 
 let callActive=false,callWaiting=false,callRecognition=null,callSpeaking=false;
 const SpeechRecognitionAPI=window.SpeechRecognition||window.webkitSpeechRecognition;
 function callStatus(t){$("#callStatus").textContent=t;}
+$("#callTestVoice").addEventListener("click",async()=>{
+ try{
+  callStatus("أختبر الصوت العربي…");
+  await speakCallReply("مرحباً، هذا اختبار صوت المساعد الحيدري في مستشفى الحيدرية العام.");
+  callStatus("اختبار الصوت اكتمل. إذا سمعت الكلام فالصوت يعمل.");
+ }catch(e){
+  console.error("Voice test failed",e);
+  callStatus("تعذر تشغيل الصوت. فعّل محرك تحويل النص إلى كلام ونزّل الصوت العربي من إعدادات الجهاز.");
+ }
+});
 function openCall(){
  if(!SpeechRecognitionAPI||!("speechSynthesis" in window)){alert("المكالمة تحتاج متصفح Chrome حديث يدعم التعرف على الكلام والصوت.");return;}
  $("#callScreen").style.display="flex";callStatus("جاهز. اضغط بدء المكالمة.");
