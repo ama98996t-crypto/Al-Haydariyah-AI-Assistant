@@ -177,6 +177,33 @@ if (Recognition) {
 } else { $("#voice").addEventListener("click", () => alert("الإملاء الصوتي غير مدعوم بهذا المتصفح. جرّب Chrome.")); }
 
 
+function chooseArabicVoice(){
+ const voices=window.speechSynthesis.getVoices()||[];
+ return voices.find(v=>/^ar(-|_)/i.test(v.lang))||voices.find(v=>/arabic|العربية|عربي/i.test(v.name))||null;
+}
+function speakCallReply(text){
+ return new Promise((resolve,reject)=>{
+  if(!("speechSynthesis" in window)||!("SpeechSynthesisUtterance" in window)){reject(new Error("speech unavailable"));return;}
+  const synth=window.speechSynthesis;
+  synth.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  const voice=chooseArabicVoice();
+  if(voice){u.voice=voice;u.lang=voice.lang;}else{u.lang="ar-SA";}
+  u.rate=0.9;u.pitch=1;u.volume=1;
+  let finished=false;
+  const done=()=>{if(finished)return;finished=true;resolve();};
+  u.onend=done;
+  u.onerror=e=>{if(finished)return;finished=true;reject(e.error||new Error("speech error"));};
+  // Android browsers sometimes need voices to finish loading before speaking.
+  const voices=synth.getVoices();
+  if(!voices.length && synth.onvoiceschanged!==undefined){
+    const previous=synth.onvoiceschanged;
+    synth.onvoiceschanged=()=>{synth.onvoiceschanged=previous;setTimeout(()=>synth.speak(u),150);};
+    setTimeout(()=>{if(!finished&&synth.speaking===false)synth.speak(u);},700);
+  }else{setTimeout(()=>synth.speak(u),100);}
+ });
+}
+
 let callActive=false,callWaiting=false,callRecognition=null,callSpeaking=false;
 const SpeechRecognitionAPI=window.SpeechRecognition||window.webkitSpeechRecognition;
 function callStatus(t){$("#callStatus").textContent=t;}
@@ -198,9 +225,15 @@ function startCall(){
    const reply=await ask(spoken);if(!callActive)return;
    history.push({role:"user",text:spoken},{role:"model",text:reply});history=history.slice(-12);
    $("#callTranscript").textContent="أنت: "+spoken+"\nالمساعد: "+reply;callStatus("المساعد الحيدري يرد عليك…");
-   const utterance=new SpeechSynthesisUtterance(reply);utterance.lang="ar-IQ";utterance.rate=0.94;utterance.pitch=1;
-   utterance.onend=utterance.onerror=()=>{callSpeaking=false;callWaiting=false;if(callActive)startListeningAgain();};
-   callSpeaking=true;window.speechSynthesis.cancel();window.speechSynthesis.speak(utterance);
+   callSpeaking=true;
+   try{
+    await speakCallReply(reply);
+   }catch(speechError){
+    console.error("Speech output error",speechError);
+    callStatus("وصلني سؤالك، لكن جهازك ما وفر صوتاً عربياً. فعّل خدمة تحويل النص إلى كلام بالعربية من إعدادات الجهاز.");
+   }
+   callSpeaking=false;callWaiting=false;
+   if(callActive)startListeningAgain();
   }catch(err){console.error(err);callStatus("صار خلل بالاتصال. حاول مرة ثانية.");callWaiting=false;if(callActive)setTimeout(startListeningAgain,900);}
  };
  callRecognition.onerror=e=>{
