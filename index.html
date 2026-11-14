@@ -104,6 +104,7 @@ header{height:65px;padding:0 13px}
 <button class="chip" data-q="منو مدير المستشفى؟">إدارة المستشفى</button>
 <button class="chip" data-q="أريد أعرف إحصائيات المستشفى">إحصائيات المستشفى</button>
 <button class="chip" data-q="شلون أقدم شكوى أو اقتراح؟">الشكاوى والمقترحات</button>
+<a class="chip" href="./news.html">أخبار وإعلانات المستشفى</a>
 </div>
 </section>
 
@@ -113,6 +114,7 @@ header{height:65px;padding:0 13px}
 <div class="composer-wrap">
 <form class="composer" id="form">
 <textarea id="prompt" rows="1" placeholder="اكتب رسالتك هنا..." required></textarea>
+<button class="send" id="voice" type="button" aria-label="إملاء صوتي">🎙</button>
 <button class="send" id="send" type="submit" aria-label="إرسال">➤</button>
 </form>
 <div class="note">للمعلومات العامة فقط، لا يقدم تشخيصاً أو وصف علاج أو جرعات. للحالات الطارئة اتصل بالرقم 109.</div>
@@ -145,6 +147,21 @@ async function recordVisit() {
   } catch (e) { console.warn("Visit analytics unavailable", e); }
 }
 recordVisit();
+
+let speechEnabled = true;
+function speak(text) {
+ if (!speechEnabled || !("speechSynthesis" in window)) return;
+ window.speechSynthesis.cancel();
+ const u = new SpeechSynthesisUtterance(text);
+ u.lang = "ar-IQ"; u.rate = 0.95; window.speechSynthesis.speak(u);
+}
+const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (Recognition) {
+ const rec = new Recognition(); rec.lang = "ar-IQ"; rec.interimResults = false;
+ $("#voice").addEventListener("click", () => { try { rec.start(); $("#voice").textContent = "…"; } catch(e) {} });
+ rec.onresult = e => { $("#prompt").value = e.results[0][0].transcript; $("#voice").textContent = "🎙"; $("#form").requestSubmit(); };
+ rec.onerror = rec.onend = () => { $("#voice").textContent = "🎙"; };
+} else { $("#voice").addEventListener("click", () => alert("الإملاء الصوتي غير مدعوم بهذا المتصفح. جرّب Chrome.")); }
 
 function showChat(){
 $("#welcome").style.display="none";
@@ -247,6 +264,7 @@ try{
 const a=await ask(q);
 $("#typing")?.remove();
 add(a,"assistant");
+speak(a);
 history.push({role:"model",text:a});
 history=history.slice(-12);
 }catch(e){
