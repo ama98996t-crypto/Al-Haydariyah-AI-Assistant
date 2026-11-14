@@ -1,10 +1,11 @@
+
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b3554">
-<title>المساعد الحيدري | مستشفى الحيدرية العام</title>
+<title>مستشفى الحيدرية العام</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -122,7 +123,9 @@ const SUPABASE_URL="https://dwffkopuisuyqpgedowp.supabase.co";
 const SUPABASE_KEY="sb_publishable_2wT5I3b3mY1IPzbFN5NllQ_Ja136LJn";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=s=>document.querySelector(s);
+
 let busy=false;
+let history=[];
 
 function showChat(){
 $("#welcome").style.display="none";
@@ -193,32 +196,11 @@ return d.data?answerOf(d.data):"";
 }
 
 async function ask(q){
-const clean=q.toLowerCase().replace(/[ًٌٍَُِّْـ؟?!.,،؛]/g,"").trim();
-
-const greetings=[
-"السلام عليكم",
-"سلام عليكم",
-"السلام",
-"هلا",
-"هلا بيك",
-"مرحبا",
-"مرحبتين",
-"صباح الخير",
-"مساء الخير"
-];
-
-if(greetings.includes(clean)){
-if(clean.includes("صباح")){
-return "صباح النور والسرور، هلا بيك بمستشفى الحيدرية العام. شلون أگدر أساعدك؟";
-}
-if(clean.includes("مساء")){
-return "مساء النور، أهلاً وسهلاً بيك. شلون أگدر أساعدك؟";
-}
-return "وعليكم السلام ورحمة الله وبركاته، أهلاً وسهلاً بيك. شلون أگدر أساعدك؟";
-}
-
 const {data,error}=await db.functions.invoke("hospital-ai",{
-body:{message:q}
+body:{
+message:q,
+history:history.slice(-10)
+}
 });
 
 if(error)throw error;
@@ -232,6 +214,7 @@ q=q.trim();
 if(!q||busy)return;
 
 add(q,"user");
+history.push({role:"user",text:q});
 $("#prompt").value="";
 $("#prompt").style.height="auto";
 
@@ -243,6 +226,8 @@ try{
 const a=await ask(q);
 $("#typing")?.remove();
 add(a,"assistant");
+history.push({role:"model",text:a});
+history=history.slice(-12);
 }catch(e){
 console.error(e);
 $("#typing")?.remove();
@@ -278,6 +263,7 @@ b.addEventListener("click",()=>send(b.dataset.q));
 $("#new").addEventListener("click",()=>{
 if(busy)return;
 $("#chat").innerHTML="";
+history=[];
 $("#chat").classList.remove("active");
 $("#welcome").style.display="block";
 $("#prompt").value="";
