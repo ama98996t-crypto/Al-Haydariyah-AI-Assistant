@@ -213,6 +213,7 @@ textarea::placeholder{color:#9aa8aa}
 </main>
 
 <div class="composer-wrap">
+<div id="hospital-turnstile" style="display:flex;justify-content:center;margin:0 auto 10px;min-height:0"></div>
 <form class="composer" id="form">
 <textarea id="prompt" rows="1" placeholder="اكتب رسالتك هنا..." required></textarea>
 <button class="send" id="voice" type="button" aria-label="إملاء صوتي">🎙</button>
@@ -223,6 +224,13 @@ textarea::placeholder{color:#9aa8aa}
 </div>
 </div>
 
+<script>
+window.hospitalTurnstileToken = null;
+window.hospitalTurnstileReady = function(token) { window.hospitalTurnstileToken = token; };
+window.hospitalTurnstileExpired = function() { window.hospitalTurnstileToken = null; };
+window.hospitalTurnstileError = function() { window.hospitalTurnstileToken = null; };
+</script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script>
 const SUPABASE_URL="https://dwffkopuisuyqpgedowp.supabase.co";
 const SUPABASE_KEY="sb_publishable_2wT5I3b3mY1IPzbFN5NllQ_Ja136LJn";
@@ -336,12 +344,15 @@ return d.data?answerOf(d.data):"";
 }
 
 async function ask(q){
+const proof = window.hospitalTurnstileToken;
+if(!proof) throw Error("أكمل التحقق الأمني أولاً.");
 const {data,error}=await db.functions.invoke("hospital-ai",{
 body:{
 message:q,
 visitor_id:visitorId,
 event_type:"chat",
-history:history.slice(-11,-1)
+history:history.slice(-11,-1),
+turnstile_token:proof
 }
 });
 
@@ -354,6 +365,7 @@ return a;
 async function send(q){
 q=q.trim();
 if(!q||busy)return;
+if(!window.hospitalTurnstileToken){add("أكمل التحقق الأمني الظاهر أسفل الصفحة قبل إرسال رسالتك.","assistant");return;}
 
 add(q,"user");
 history.push({role:"user",text:q});
@@ -376,6 +388,8 @@ console.error(e);
 $("#typing")?.remove();
 add("حالياً ما كدرت أتصل بالمساعد الذكي. جرّب بعد قليل. للحالات الطارئة اتصل بالرقم 109.","assistant");
 }finally{
+window.hospitalTurnstileToken = null;
+if(window.turnstile) { try { window.turnstile.reset(); } catch(e) {} }
 busy=false;
 $("#send").disabled=false;
 $("#prompt").focus();
