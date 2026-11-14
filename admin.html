@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b3554"><title>إدارة المساعد الحيدري</title>
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--n:#0b3554;--b:#12618c;--g:#c8aa70;--bg:#f2f6f8;--ink:#183348;--mut:#718493;--line:#e1e9ee}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Tahoma,Arial,sans-serif;color:var(--ink)}
+header{background:var(--n);color:white;padding:18px max(18px,calc((100% - 1120px)/2));display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:12px}.brand img{width:48px;height:48px;border-radius:50%;background:white}.brand small{display:block;color:#cbd9e1;margin-top:5px}
+main{max-width:1120px;margin:24px auto;padding:0 16px}.panel{background:white;border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:18px;box-shadow:0 6px 24px #0b35540a}
+h1{font-size:22px;margin:0}h2{font-size:18px;margin:0 0 14px}.muted{color:var(--mut);font-size:13px;line-height:1.8}
+input,textarea,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font:inherit;margin:6px 0 12px;background:#fff}
+textarea{min-height:100px;resize:vertical}button{border:0;border-radius:10px;padding:11px 16px;background:var(--b);color:white;font:inherit;cursor:pointer}button.secondary{background:#eaf2f6;color:var(--n)}button.danger{background:#a93636}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.metric{background:#f6fafc;border:1px solid var(--line);padding:16px;border-radius:14px}.metric b{display:block;font-size:27px;color:var(--n);margin-top:8px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.tabs button{background:#eaf1f5;color:var(--n)}.tabs button.active{background:var(--n);color:#fff}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}.item{padding:12px 0;border-bottom:1px solid var(--line)}.item:last-child{border:0}
+.hidden{display:none!important}.error{color:#a93636;font-size:13px}.success{color:#197448;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:right;padding:10px;border-bottom:1px solid var(--line)}
+@media(max-width:700px){.grid{grid-template-columns:repeat(2,1fr)}header{padding:14px 16px}main{margin:14px auto}.panel{padding:15px}}
+@media print{header,.tabs,#login,.no-print{display:none!important}body{background:white}.panel{box-shadow:none;border:0}}
+</style></head>
+<body>
+<header><div class="brand"><img src="./icon.svg"><div><strong>إدارة المساعد الحيدري</strong><small>مستشفى الحيدرية العام</small></div></div><button id="logout" class="secondary hidden">تسجيل الخروج</button></header>
+<main>
+<section id="login" class="panel" style="max-width:440px;margin:50px auto">
+<h2>دخول الإدارة</h2><p class="muted">هذه الصفحة مخصصة للمستخدمين المخولين فقط.</p>
+<label>البريد الإلكتروني</label><input id="email" type="email" autocomplete="username">
+<label>كلمة المرور</label><input id="password" type="password" autocomplete="current-password">
+<button id="loginBtn">تسجيل الدخول</button><p id="loginMsg" class="error"></p>
+</section>
+<section id="dashboard" class="hidden">
+<div class="panel"><h1>لوحة المتابعة</h1><p class="muted">إحصائيات استخدام المساعد الحيدري. لا يتم عرض نصوص المحادثات أو بيانات تعريف الزوار.</p>
+<div class="grid"><div class="metric">الزيارات<b id="visits">—</b></div><div class="metric">المحادثات<b id="chats">—</b></div><div class="metric">زوار مميزون<b id="unique">—</b></div><div class="metric">إعلانات منشورة<b id="newsCount">—</b></div></div>
+<div class="row no-print" style="margin-top:14px"><button onclick="loadStats()">تحديث الإحصائيات</button><button class="secondary" onclick="window.print()">طباعة / حفظ PDF</button></div></div>
+<div class="tabs no-print"><button class="active" data-tab="news">الأخبار والإعلانات</button><button data-tab="knowledge">تعليمات الموظفين</button><button data-tab="departments">الأقسام</button><button data-tab="doctors">الأطباء</button><button data-tab="services">الخدمات</button><button data-tab="documents">المستندات</button></div>
+<section id="news" class="panel tab"><h2>إضافة إعلان أو خبر</h2><input id="newsTitle" placeholder="عنوان الخبر"><select id="newsCategory"><option value="news">خبر</option><option value="announcement">إعلان</option><option value="alert">تنبيه</option><option value="event">فعالية</option></select><textarea id="newsBody" placeholder="نص الخبر أو الإعلان"></textarea><div class="row"><button id="saveNews">حفظ ونشر</button><button class="secondary" id="saveDraft">حفظ كمسودة</button></div><div id="newsList"></div></section>
+<section id="knowledge" class="panel tab hidden"><h2>قاعدة تعليمات الموظفين</h2><p class="muted">تضاف فقط التعليمات المعتمدة رسمياً، ولا تظهر للمراجعين.</p><input id="kTitle" placeholder="عنوان التعليمات"><input id="kDept" placeholder="القسم المعني (اختياري)"><textarea id="kContent" placeholder="نص التعليمات المعتمدة"></textarea><button id="saveKnowledge">حفظ التعليمات</button><div id="knowledgeList"></div></section>
+<section id="departments" class="panel tab hidden"><h2>إدارة الأقسام</h2><input id="dName" placeholder="اسم القسم"><input id="dLocation" placeholder="الموقع / الطابق"><textarea id="dDesc" placeholder="وصف القسم والخدمات"></textarea><button id="saveDepartment">إضافة القسم ونشره</button><div id="departmentList"></div></section>
+<section id="doctors" class="panel tab hidden"><h2>إدارة الأطباء</h2><input id="docName" placeholder="اسم الطبيب"><input id="docSpecialty" placeholder="الاختصاص"><input id="docSchedule" placeholder="جدول الدوام المعتمد"><button id="saveDoctor">إضافة الطبيب</button><div id="doctorList"></div></section>
+<section id="services" class="panel tab hidden"><h2>إدارة الخدمات</h2><input id="serviceName" placeholder="اسم الخدمة"><textarea id="serviceDesc" placeholder="تفاصيل الخدمة والمتطلبات"></textarea><button id="saveService">إضافة الخدمة</button><div id="serviceList"></div></section>
+<section id="documents" class="panel tab hidden"><h2>المستندات الإدارية</h2><p class="muted">ملفات خاصة، تخزن في مساحة خاصة ولا تكون متاحة للعامة. رفع PDF أو صور أو Word حتى 15MB.</p><input id="docTitle" placeholder="عنوان المستند"><select id="docAccess"><option value="admin">الإدارة فقط</option><option value="media">الإعلام</option><option value="inquiries">الاستعلامات</option><option value="staff">الموظفون</option></select><input id="docFile" type="file" accept=".pdf,.png,.jpg,.jpeg,.docx"><button id="uploadDoc">رفع المستند</button><div id="docMsg" class="muted"></div></section>
+</section>
+</main>
+<script>
+const SUPABASE_URL="https://dwffkopuisuyqpgedowp.supabase.co";
+const SUPABASE_KEY="sb_publishable_2wT5I3b3mY1IPzbFN5NllQ_Ja136LJn";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+let currentUser=null;
+const msg=(id,text,cls="muted")=>{ $(id).textContent=text; $(id).className=cls; };
+async function ensureRole(user){
+ const {data,error}=await db.from("hospital_admins").select("role").eq("user_id",user.id).maybeSingle();
+ if(error||!data) throw new Error("هذا الحساب غير مخول للوصول إلى لوحة المستشفى.");
+ return data.role;
+}
+async function enter(user){
+ await ensureRole(user);currentUser=user;
+ $("login").classList.add("hidden");$("dashboard").classList.remove("hidden");$("logout").classList.remove("hidden");
+ await Promise.all([loadStats(),loadNews(),loadKnowledge(),loadDepartments(),loadDoctors(),loadServices()]);
+}
+$("loginBtn").onclick=async()=>{
+ msg("loginMsg","جارٍ التحقق...");
+ const {data,error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+ if(error){msg("loginMsg",error.message,"error");return;}
+ try{await enter(data.user);}catch(e){await db.auth.signOut();msg("loginMsg",e.message,"error");}
+};
+$("logout").onclick=async()=>{await db.auth.signOut();location.reload();};
+db.auth.getSession().then(async({data})=>{if(data.session){try{await enter(data.session.user)}catch(e){await db.auth.signOut();}}});
+document.querySelectorAll("[data-tab]").forEach(btn=>btn.onclick=()=>{
+ document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===btn));
+ document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("hidden",x.id!==btn.dataset.tab));
+});
+async function loadStats(){
+ const {data,error}=await db.from("hospital_ai_analytics_events").select("visitor_hash,event_type,topic,created_at").limit(10000);
+ if(error){$("visits").textContent="غير متاح";$("chats").textContent="غير متاح";return;}
+ $("visits").textContent=data.filter(x=>x.event_type==="visit").length;
+ $("chats").textContent=data.filter(x=>x.event_type==="chat").length;
+ $("unique").textContent=new Set(data.map(x=>x.visitor_hash)).size;
+ const n=await db.from("hospital_announcements").select("id",{count:"exact",head:true});
+ $("newsCount").textContent=n.count??0;
+}
+function addList(target,rows,format){$(target).innerHTML=rows.length?rows.map(format).join(""):'<p class="muted">لا توجد سجلات بعد.</p>';}
+async function loadNews(){const {data}=await db.from("hospital_announcements").select("*").order("created_at",{ascending:false});addList("newsList",data||[],x=>'<div class="item"><b>'+esc(x.title)+'</b> · '+(x.is_published?'منشور':'مسودة')+'</div>');}
+$("saveNews").onclick=()=>saveNews(true);$("saveDraft").onclick=()=>saveNews(false);
+async function saveNews(pub){const title=$("newsTitle").value.trim(),body=$("newsBody").value.trim();if(!title||!body)return alert("أدخل العنوان والنص.");const {error}=await db.from("hospital_announcements").insert({title,body,category:$("newsCategory").value,is_published:pub,published_at:pub?new Date().toISOString():null,created_by:currentUser.id});if(error)return alert(error.message);$("newsTitle").value=$("newsBody").value="";await loadNews();await loadStats();}
+async function loadKnowledge(){const {data}=await db.from("hospital_staff_knowledge").select("*").order("created_at",{ascending:false});addList("knowledgeList",data||[],x=>'<div class="item"><b>'+esc(x.title)+'</b> — '+esc(x.department||"عام")+'</div>');}
+$("saveKnowledge").onclick=async()=>{const title=$("kTitle").value.trim(),content=$("kContent").value.trim();if(!title||!content)return alert("أدخل العنوان والمحتوى.");const {error}=await db.from("hospital_staff_knowledge").insert({title,content,department:$("kDept").value.trim()||null,is_published:true,created_by:currentUser.id});if(error)return alert(error.message);$("kTitle").value=$("kContent").value=$("kDept").value="";loadKnowledge();};
+async function loadDepartments(){const {data}=await db.from("hospital_departments").select("*").order("display_order");addList("departmentList",data||[],x=>'<div class="item">'+esc(x.name)+' · '+(x.is_published?'منشور':'غير منشور')+'</div>');}
+$("saveDepartment").onclick=async()=>{const name=$("dName").value.trim();if(!name)return alert("اكتب اسم القسم.");const {error}=await db.from("hospital_departments").insert({name,location:$("dLocation").value.trim()||null,description:$("dDesc").value.trim()||null,is_published:true});if(error)return alert(error.message);$("dName").value=$("dLocation").value=$("dDesc").value="";loadDepartments();};
+async function loadDoctors(){const {data}=await db.from("hospital_doctors").select("*").order("display_order");addList("doctorList",data||[],x=>'<div class="item">'+esc(x.full_name)+' — '+esc(x.specialty)+'</div>');}
+$("saveDoctor").onclick=async()=>{const full_name=$("docName").value.trim(),specialty=$("docSpecialty").value.trim();if(!full_name||!specialty)return alert("أدخل اسم الطبيب والاختصاص.");const {error}=await db.from("hospital_doctors").insert({full_name,specialty,schedule:$("docSchedule").value.trim()||null,is_published:true});if(error)return alert(error.message);$("docName").value=$("docSpecialty").value=$("docSchedule").value="";loadDoctors();};
+async function loadServices(){const {data}=await db.from("hospital_services").select("*").order("display_order");addList("serviceList",data||[],x=>'<div class="item">'+esc(x.name)+'</div>');}
+$("saveService").onclick=async()=>{const name=$("serviceName").value.trim();if(!name)return alert("اكتب اسم الخدمة.");const {error}=await db.from("hospital_services").insert({name,description:$("serviceDesc").value.trim()||null,is_published:true});if(error)return alert(error.message);$("serviceName").value=$("serviceDesc").value="";loadServices();};
+$("uploadDoc").onclick=async()=>{const file=$("docFile").files[0],title=$("docTitle").value.trim();if(!file||!title)return msg("docMsg","أدخل عنواناً واختر ملفاً.","error");if(file.size>15*1024*1024)return msg("docMsg","حجم الملف يتجاوز 15MB.","error");const path=currentUser.id+"/"+Date.now()+"-"+file.name.replace(/[^\w.\-]/g,"_");const up=await db.storage.from("hospital-private-documents").upload(path,file);if(up.error)return msg("docMsg",up.error.message,"error");const ins=await db.from("hospital_documents").insert({title,document_type:file.type||"file",storage_path:path,access_level:$("docAccess").value,created_by:currentUser.id});if(ins.error)return msg("docMsg",ins.error.message,"error");$("docTitle").value="";$("docFile").value="";msg("docMsg","تم رفع المستند وتخزينه بشكل خاص.","success");};
+function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+</script></body></html>
