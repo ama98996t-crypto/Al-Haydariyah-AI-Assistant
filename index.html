@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
@@ -80,8 +79,8 @@ header{height:65px;padding:0 13px}
 <div class="brand">
 <div class="logo">✚</div>
 <div>
-<b>المساعد الحيدري</b>
-<small>مستشفى الحيدرية العام · النجف الأشرف</small>
+<b>مستشفى الحيدرية العام</b>
+<small>النجف الأشرف</small>
 </div>
 </div>
 <div class="right">
@@ -89,10 +88,11 @@ header{height:65px;padding:0 13px}
 <button class="icon" id="new" title="محادثة جديدة">＋</button>
 </div>
 </header>
+
 <main>
 <section class="welcome" id="welcome">
 <div class="mark">✚</div>
-<h1>هلا بيك، آني المساعد الحيدري</h1>
+<h1>هلا بيك بمستشفى الحيدرية العام</h1>
 <p>سولف وياي واسألني عن مستشفى الحيدرية العام. أساعدك بمعلومات الأقسام والخدمات والأطباء والإحصائيات، وأجاوبك باللهجة العراقية.</p>
 <div class="chips">
 <button class="chip" data-q="السلام عليكم">السلام والتحية</button>
@@ -103,8 +103,10 @@ header{height:65px;padding:0 13px}
 <button class="chip" data-q="شلون أقدم شكوى أو اقتراح؟">الشكاوى والمقترحات</button>
 </div>
 </section>
+
 <section id="chat" aria-live="polite"></section>
 </main>
+
 <div class="composer-wrap">
 <form class="composer" id="form">
 <textarea id="prompt" rows="1" placeholder="اكتب رسالتك هنا..." required></textarea>
@@ -114,6 +116,7 @@ header{height:65px;padding:0 13px}
 <div class="foot">وحدة الإعلام · مستشفى الحيدرية العام</div>
 </div>
 </div>
+
 <script>
 const SUPABASE_URL="https://dwffkopuisuyqpgedowp.supabase.co";
 const SUPABASE_KEY="sb_publishable_2wT5I3b3mY1IPzbFN5NllQ_Ja136LJn";
@@ -130,17 +133,22 @@ function add(text,role){
 showChat();
 const row=document.createElement("div");
 row.className="msg "+(role==="user"?"user":"assistant");
+
 const av=document.createElement("div");
 av.className="avatar";
 av.textContent=role==="user"?"أنت":"✚";
+
 const body=document.createElement("div");
 body.className="body";
+
 const sender=document.createElement("div");
 sender.className="sender";
-sender.textContent=role==="user"?"أنت":"المساعد الحيدري";
+sender.textContent=role==="user"?"أنت":"مستشفى الحيدرية العام";
+
 const bubble=document.createElement("div");
 bubble.className="bubble";
 bubble.textContent=text;
+
 body.append(sender,bubble);
 row.append(av,body);
 $("#chat").append(row);
@@ -153,17 +161,22 @@ showChat();
 const row=document.createElement("div");
 row.className="msg";
 row.id="typing";
+
 const av=document.createElement("div");
 av.className="avatar";
 av.textContent="✚";
+
 const body=document.createElement("div");
 body.className="body";
+
 const sender=document.createElement("div");
 sender.className="sender";
-sender.textContent="المساعد الحيدري يكتب...";
+sender.textContent="مستشفى الحيدرية العام يكتب...";
+
 const bubble=document.createElement("div");
 bubble.className="bubble typing";
 bubble.innerHTML="<i></i><i></i><i></i>";
+
 body.append(sender,bubble);
 row.append(av,body);
 $("#chat").append(row);
@@ -180,7 +193,34 @@ return d.data?answerOf(d.data):"";
 }
 
 async function ask(q){
-const {data,error}=await db.functions.invoke("hospital-ai",{body:{message:q}});
+const clean=q.toLowerCase().replace(/[ًٌٍَُِّْـ؟?!.,،؛]/g,"").trim();
+
+const greetings=[
+"السلام عليكم",
+"سلام عليكم",
+"السلام",
+"هلا",
+"هلا بيك",
+"مرحبا",
+"مرحبتين",
+"صباح الخير",
+"مساء الخير"
+];
+
+if(greetings.includes(clean)){
+if(clean.includes("صباح")){
+return "صباح النور والسرور، هلا بيك بمستشفى الحيدرية العام. شلون أگدر أساعدك؟";
+}
+if(clean.includes("مساء")){
+return "مساء النور، أهلاً وسهلاً بيك. شلون أگدر أساعدك؟";
+}
+return "وعليكم السلام ورحمة الله وبركاته، أهلاً وسهلاً بيك. شلون أگدر أساعدك؟";
+}
+
+const {data,error}=await db.functions.invoke("hospital-ai",{
+body:{message:q}
+});
+
 if(error)throw error;
 const a=answerOf(data);
 if(!a)throw Error("Empty AI response");
@@ -190,12 +230,15 @@ return a;
 async function send(q){
 q=q.trim();
 if(!q||busy)return;
+
 add(q,"user");
 $("#prompt").value="";
 $("#prompt").style.height="auto";
+
 busy=true;
 $("#send").disabled=true;
 typing();
+
 try{
 const a=await ask(q);
 $("#typing")?.remove();
