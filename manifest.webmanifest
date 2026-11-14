@@ -1,0 +1,21 @@
+{
+  "name": "المساعد الحيدري – مستشفى الحيدرية العام",
+  "short_name": "المساعد الحيدري",
+  "description": "المساعد الرسمي لمعلومات مستشفى الحيدرية العام",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f6f8",
+  "theme_color": "#0b3554",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
