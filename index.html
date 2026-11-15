@@ -213,7 +213,7 @@ textarea::placeholder{color:#9aa8aa}
 </main>
 
 <div class="composer-wrap">
-<div id="hospital-turnstile" style="display:flex;justify-content:center;margin:0 auto 10px;min-height:0"></div>
+<div id="hospital-turnstile" aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);"></div>
 <form class="composer" id="form">
 <textarea id="prompt" rows="1" placeholder="اكتب رسالتك هنا..." required></textarea>
 <button class="send" id="voice" type="button" aria-label="إملاء صوتي">🎙</button>
@@ -226,19 +226,57 @@ textarea::placeholder{color:#9aa8aa}
 
 <script>
 window.hospitalTurnstileToken = null;
-window.hospitalTurnstileReady = function(token) { window.hospitalTurnstileToken = token; };
-window.hospitalTurnstileExpired = function() { window.hospitalTurnstileToken = null; };
-window.hospitalTurnstileError = function() { window.hospitalTurnstileToken = null; };
+window.hospitalTurnstileWidgetId = null;
+window.hospitalTurnstileResolve = null;
+window.hospitalTurnstileReady = function(token) {
+  window.hospitalTurnstileToken = token;
+  if (window.hospitalTurnstileResolve) {
+    window.hospitalTurnstileResolve(token);
+    window.hospitalTurnstileResolve = null;
+  }
+};
+window.hospitalTurnstileExpired = function() {
+  window.hospitalTurnstileToken = null;
+  if (window.hospitalTurnstileResolve) {
+    window.hospitalTurnstileResolve(null);
+    window.hospitalTurnstileResolve = null;
+  }
+};
+window.hospitalTurnstileError = window.hospitalTurnstileExpired;
 window.renderHospitalTurnstile = function() {
-  if (!window.turnstile || document.querySelector("#hospital-turnstile iframe")) return;
-  window.turnstile.render("#hospital-turnstile", {
+  if (!window.turnstile || window.hospitalTurnstileWidgetId !== null) return;
+  window.hospitalTurnstileWidgetId = window.turnstile.render("#hospital-turnstile", {
     sitekey: "0x4AAAAAAGBVRWJAI9qTTpMS",
     action: "hospital_ai",
+    execution: "execute",
+    appearance: "execute",
     callback: window.hospitalTurnstileReady,
     "expired-callback": window.hospitalTurnstileExpired,
     "error-callback": window.hospitalTurnstileError,
-    theme: "auto",
-    size: "flexible"
+    size: "invisible"
+  });
+};
+window.getHospitalTurnstileToken = function() {
+  return new Promise((resolve) => {
+    if (!window.turnstile || window.hospitalTurnstileWidgetId === null) {
+      resolve(null);
+      return;
+    }
+    window.hospitalTurnstileToken = null;
+    window.hospitalTurnstileResolve = resolve;
+    try {
+      window.turnstile.execute(window.hospitalTurnstileWidgetId);
+      setTimeout(() => {
+        if (window.hospitalTurnstileResolve === resolve) {
+          window.hospitalTurnstileResolve = null;
+          resolve(null);
+          try { window.turnstile.reset(window.hospitalTurnstileWidgetId); } catch (_) {}
+        }
+      }, 15000);
+    } catch (_) {
+      window.hospitalTurnstileResolve = null;
+      resolve(null);
+    }
   });
 };
 </script>
@@ -355,9 +393,8 @@ if(typeof d[k]==="string"&&d[k].trim())return d[k].trim();
 return d.data?answerOf(d.data):"";
 }
 
-async function ask(q){
-const proof = window.hospitalTurnstileToken;
-if(!proof) throw Error("أكمل التحقق الأمني أولاً.");
+async function ask(q, proof){
+if(!proof) throw Error("تعذر إكمال التحقق الأمني.");
 const {data,error}=await db.functions.invoke("hospital-ai",{
 body:{
 message:q,
@@ -377,19 +414,25 @@ return a;
 async function send(q){
 q=q.trim();
 if(!q||busy)return;
-if(!window.hospitalTurnstileToken){add("أكمل التحقق الأمني الظاهر أسفل الصفحة قبل إرسال رسالتك.","assistant");return;}
 
+busy=true;
+$("#send").disabled=true;
+const proof = await window.getHospitalTurnstileToken();
+if(!proof){
+  busy=false;
+  $("#send").disabled=false;
+  add("تعذر إكمال التحقق الأمني حالياً. حاول مرة ثانية بعد قليل.","assistant");
+  return;
+}
 add(q,"user");
 history.push({role:"user",text:q});
 $("#prompt").value="";
 $("#prompt").style.height="auto";
 
-busy=true;
-$("#send").disabled=true;
 typing();
 
 try{
-const a=await ask(q);
+const a=await ask(q, proof);
 $("#typing")?.remove();
 add(a,"assistant");
 speak(a);
@@ -401,7 +444,9 @@ $("#typing")?.remove();
 add("حالياً ما كدرت أتصل بالمساعد الذكي. جرّب بعد قليل. للحالات الطارئة اتصل بالرقم 109.","assistant");
 }finally{
 window.hospitalTurnstileToken = null;
-if(window.turnstile) { try { window.turnstile.reset(); } catch(e) {} }
+if(window.turnstile && window.hospitalTurnstileWidgetId !== null) {
+  try { window.turnstile.reset(window.hospitalTurnstileWidgetId); } catch(e) {}
+}
 busy=false;
 $("#send").disabled=false;
 $("#prompt").focus();
