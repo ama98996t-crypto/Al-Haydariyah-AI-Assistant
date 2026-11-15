@@ -307,7 +307,6 @@ body[data-theme="dark"] .home-note{background:#c4a36a16}
 </div>
 <div class="right">
 <span class="status"><i class="dot"></i>متصل للمساعدة</span>
-<button class="icon" id="speechToggle" title="تشغيل أو إيقاف قراءة الردود" aria-label="تشغيل أو إيقاف الصوت">🔊</button>
 <button class="icon" id="new" title="محادثة جديدة">＋</button>
 </div>
 </header>
@@ -384,17 +383,7 @@ async function recordVisit() {
 }
 recordVisit();
 
-let speechEnabled = true;
-function speak(text) {
- if (!speechEnabled || !("speechSynthesis" in window)) return;
- window.speechSynthesis.cancel();
- const u = new SpeechSynthesisUtterance(text);
- u.lang = "ar-IQ"; u.rate = 0.95; window.speechSynthesis.speak(u);
-}
-$("#speechToggle").addEventListener("click",()=>{
- speechEnabled=!speechEnabled;$("#speechToggle").textContent=speechEnabled?"🔊":"🔇";
- if(!speechEnabled&&"speechSynthesis" in window)window.speechSynthesis.cancel();
-});
+
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (Recognition) {
  const rec = new Recognition(); rec.lang = "ar-IQ"; rec.interimResults = false;
@@ -503,7 +492,7 @@ async function send(q){
    const a=await ask(q);
    $("#typing")?.remove();
    add(a,"assistant");
-   speak(a);
+
    history.push({role:"model",text:a});
    history=history.slice(-12);
  } catch(e) {
