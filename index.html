@@ -232,83 +232,86 @@ window.hospitalTurnstileResolve = null;
 window.hospitalTurnstileInitPromise = null;
 window.hospitalTurnstileReady = function(token) {
   window.hospitalTurnstileToken = token;
-  if (window.hospitalTurnstileResolve) {
-    window.hospitalTurnstileResolve(token);
-    window.hospitalTurnstileResolve = null;
-  }
+  const done = window.hospitalTurnstileResolve;
+  window.hospitalTurnstileResolve = null;
+  if (done) done(token);
 };
-window.hospitalTurnstileExpired = function() {
-  window.hospitalTurnstileToken = null;
-};
-window.hospitalTurnstileError = function(code) {
-  console.error("Turnstile client error:", code);
-  window.hospitalTurnstileToken = null;
-  if (window.hospitalTurnstileResolve) {
-    window.hospitalTurnstileResolve(null);
-    window.hospitalTurnstileResolve = null;
-  }
+window.hospitalTurnstileFail = function(reason) {
+  console.error("Turnstile:", reason);
+  const done = window.hospitalTurnstileResolve;
+  window.hospitalTurnstileResolve = null;
+  if (done) done(null);
 };
 window.renderHospitalTurnstile = function() {
-  if (!window.turnstile || window.hospitalTurnstileWidgetId !== null) return;
-  window.hospitalTurnstileInitPromise = new Promise((resolve) => {
-    window.turnstile.ready(function() {
-      try {
-        window.hospitalTurnstileWidgetId = window.turnstile.render("#hospital-turnstile", {
-          sitekey: "0x4AAAAAAGBVRWJAI9qTTpMS",
-          action: "hospital_ai",
-          execution: "execute",
-          appearance: "execute",
-          callback: window.hospitalTurnstileReady,
-          "expired-callback": window.hospitalTurnstileExpired,
-          "error-callback": window.hospitalTurnstileError,
-          "timeout-callback": window.hospitalTurnstileExpired,
-          retry: "auto",
-          "refresh-expired": "auto",
-          size: "invisible"
-        });
-        resolve(window.hospitalTurnstileWidgetId);
-      } catch (e) {
-        console.error("Turnstile initialization failed:", e);
-        resolve(null);
-      }
-    });
-  });
-};
-window.getHospitalTurnstileToken = async function() {
-  if (window.hospitalTurnstileToken) return window.hospitalTurnstileToken;
-  if (!window.turnstile) {
-    await new Promise(resolve => {
-      const started = Date.now();
-      const poll = () => {
-        if (window.turnstile || Date.now() - started > 15000) return resolve();
-        setTimeout(poll, 150);
-      };
-      poll();
-    });
-  }
-  if (window.turnstile && window.hospitalTurnstileWidgetId === null) {
-    window.renderHospitalTurnstile();
-    if (window.hospitalTurnstileInitPromise) await window.hospitalTurnstileInitPromise;
-  }
-  if (!window.turnstile || window.hospitalTurnstileWidgetId === null) return null;
-  return await new Promise(resolve => {
-    window.hospitalTurnstileResolve = resolve;
+  if (!window.turnstile) return Promise.resolve(null);
+  if (window.hospitalTurnstileWidgetId !== null) return Promise.resolve(window.hospitalTurnstileWidgetId);
+  if (window.hospitalTurnstileInitPromise) return window.hospitalTurnstileInitPromise;
+  window.hospitalTurnstileInitPromise = new Promise(resolve => {
+    const timer = setTimeout(() => resolve(null), 8000);
     try {
-      window.turnstile.execute(window.hospitalTurnstileWidgetId);
-      setTimeout(() => {
-        if (window.hospitalTurnstileResolve === resolve) {
-          window.hospitalTurnstileResolve = null;
+      window.turnstile.ready(() => {
+        try {
+          const id = window.turnstile.render("#hospital-turnstile", {
+            sitekey: "0x4AAAAAAGBVRWJAI9qTTpMS",
+            action: "hospital_ai",
+            execution: "execute",
+            appearance: "execute",
+            size: "invisible",
+            callback: window.hospitalTurnstileReady,
+            "error-callback": window.hospitalTurnstileFail,
+            "expired-callback": () => { window.hospitalTurnstileToken = null; },
+            "timeout-callback": () => { window.hospitalTurnstileToken = null; },
+            retry: "auto",
+            "refresh-expired": "auto"
+          });
+          window.hospitalTurnstileWidgetId = id;
+          clearTimeout(timer);
+          resolve(id);
+        } catch (err) {
+          clearTimeout(timer);
+          console.error(err);
           resolve(null);
         }
-      }, 20000);
-    } catch (e) {
-      console.error("Turnstile execute failed:", e);
+      });
+    } catch (err) {
+      clearTimeout(timer);
+      console.error(err);
+      resolve(null);
+    }
+  });
+  return window.hospitalTurnstileInitPromise;
+};
+window.getHospitalTurnstileToken = async function() {
+  const started = Date.now();
+  while (!window.turnstile && Date.now() - started < 12000) {
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  if (!window.turnstile) throw new Error("Cloudflare script did not load. Check connection or browser content blocker.");
+  const id = await window.renderHospitalTurnstile();
+  if (id === null || id === undefined) throw new Error("Cloudflare widget could not initialize.");
+  window.hospitalTurnstileToken = null;
+  return await new Promise(resolve => {
+    const finish = token => resolve(token);
+    window.hospitalTurnstileResolve = finish;
+    const timer = setTimeout(() => {
+      if (window.hospitalTurnstileResolve === finish) window.hospitalTurnstileResolve = null;
+      resolve(null);
+    }, 12000);
+    const oldReady = window.hospitalTurnstileReady;
+    window.hospitalTurnstileReady = token => {
+      clearTimeout(timer);
+      oldReady(token);
+    };
+    try {
+      window.turnstile.execute(id);
+    } catch (err) {
+      clearTimeout(timer);
       window.hospitalTurnstileResolve = null;
+      console.error(err);
       resolve(null);
     }
   });
 };
-
 </script>
 <script>
 const SUPABASE_URL="https://dwffkopuisuyqpgedowp.supabase.co";
@@ -443,42 +446,41 @@ return a;
 async function send(q){
 q=q.trim();
 if(!q||busy)return;
-
 busy=true;
 $("#send").disabled=true;
-const proof = await window.getHospitalTurnstileToken();
-if(!proof){
+try {
+  const proof = await window.getHospitalTurnstileToken();
+  if(!proof) throw new Error("Cloudflare verification timed out. Please retry.");
+  add(q,"user");
+  history.push({role:"user",text:q});
+  $("#prompt").value="";
+  $("#prompt").style.height="auto";
+  typing();
+  const a=await ask(q, proof);
+  $("#typing")?.remove();
+  add(a,"assistant");
+  speak(a);
+  history.push({role:"model",text:a});
+  history=history.slice(-12);
+} catch(e) {
+  console.error("Hospital assistant send failed:",e);
+  $("#typing")?.remove();
+  const message = String(e?.message || "");
+  if(message.includes("Cloudflare script did not load")) {
+    add("تعذر تحميل خدمة التحقق الأمني. تأكد من اتصال الإنترنت أو جرّب فتح الموقع بمتصفح Chrome.","assistant");
+  } else if(message.includes("Cloudflare widget")) {
+    add("تعذر تهيئة التحقق الأمني. حدّث الصفحة وحاول مرة أخرى.","assistant");
+  } else {
+    add("تعذر إكمال التحقق أو الاتصال بالمساعد حالياً. حاول مرة أخرى بعد قليل.","assistant");
+  }
+} finally {
+  window.hospitalTurnstileToken = null;
+  if(window.turnstile && window.hospitalTurnstileWidgetId !== null) {
+    try { window.turnstile.reset(window.hospitalTurnstileWidgetId); } catch(e) {}
+  }
   busy=false;
   $("#send").disabled=false;
-  add("تعذر إكمال التحقق الأمني حالياً. حاول مرة ثانية بعد قليل.","assistant");
-  return;
-}
-add(q,"user");
-history.push({role:"user",text:q});
-$("#prompt").value="";
-$("#prompt").style.height="auto";
-
-typing();
-
-try{
-const a=await ask(q, proof);
-$("#typing")?.remove();
-add(a,"assistant");
-speak(a);
-history.push({role:"model",text:a});
-history=history.slice(-12);
-}catch(e){
-console.error(e);
-$("#typing")?.remove();
-add("حالياً ما كدرت أتصل بالمساعد الذكي. جرّب بعد قليل. للحالات الطارئة اتصل بالرقم 109.","assistant");
-}finally{
-window.hospitalTurnstileToken = null;
-if(window.turnstile && window.hospitalTurnstileWidgetId !== null) {
-  try { window.turnstile.reset(window.hospitalTurnstileWidgetId); } catch(e) {}
-}
-busy=false;
-$("#send").disabled=false;
-$("#prompt").focus();
+  $("#prompt").focus();
 }
 }
 
