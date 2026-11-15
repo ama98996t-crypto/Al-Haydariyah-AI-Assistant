@@ -214,7 +214,7 @@ textarea::placeholder{color:#9aa8aa}
 </main>
 
 <div class="composer-wrap">
-<div id="hospital-turnstile" aria-hidden="true" style="position:fixed;left:-10000px;top:0;width:300px;height:65px;overflow:visible;pointer-events:none;"></div>
+<div id="hospital-turnstile" aria-label="التحقق الأمني" style="display:flex;justify-content:center;align-items:center;width:100%;min-height:65px;margin:0 auto 8px;overflow:visible;pointer-events:auto;"></div>
 <form class="composer" id="form">
 <textarea id="prompt" rows="1" placeholder="اكتب رسالتك هنا..." required></textarea>
 <button class="send" id="voice" type="button" aria-label="إملاء صوتي">🎙</button>
@@ -253,7 +253,7 @@ window.renderHospitalTurnstile = function() {
       sitekey: "0x4AAAAAAGBVRWJAI9qTTpMS",
       action: "hospital_ai",
       execution: "execute",
-      size: "invisible",
+      size: "normal",
       callback: window.hospitalTurnstileReady,
       "error-callback": window.hospitalTurnstileFail,
       "expired-callback": () => { window.hospitalTurnstileToken = null; },
