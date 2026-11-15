@@ -229,8 +229,20 @@ window.hospitalTurnstileToken = null;
 window.hospitalTurnstileReady = function(token) { window.hospitalTurnstileToken = token; };
 window.hospitalTurnstileExpired = function() { window.hospitalTurnstileToken = null; };
 window.hospitalTurnstileError = function() { window.hospitalTurnstileToken = null; };
+window.renderHospitalTurnstile = function() {
+  if (!window.turnstile || document.querySelector("#hospital-turnstile iframe")) return;
+  window.turnstile.render("#hospital-turnstile", {
+    sitekey: "0x4AAAAAAGBVRWJAI9qTTpMS",
+    action: "hospital_ai",
+    callback: window.hospitalTurnstileReady,
+    "expired-callback": window.hospitalTurnstileExpired,
+    "error-callback": window.hospitalTurnstileError,
+    theme: "auto",
+    size: "flexible"
+  });
+};
 </script>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=renderHospitalTurnstile&render=explicit" async defer></script>
 <script>
 const SUPABASE_URL="https://dwffkopuisuyqpgedowp.supabase.co";
 const SUPABASE_KEY="sb_publishable_2wT5I3b3mY1IPzbFN5NllQ_Ja136LJn";
