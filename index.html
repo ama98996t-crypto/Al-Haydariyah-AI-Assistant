@@ -380,31 +380,27 @@ $("#chat").scrollTop=$("#chat").scrollHeight;
 return row;
 }
 
-function typing(){
-showChat();
-const row=document.createElement("div");
-row.className="msg";
-row.id="typing";
-
-const av=document.createElement("div");
-av.className="avatar";
-av.textContent="✚";
-
-const body=document.createElement("div");
-body.className="body";
-
-const sender=document.createElement("div");
-sender.className="sender";
-sender.textContent="مساعد مستشفى الحيدرية يكتب...";
-
-const bubble=document.createElement("div");
-bubble.className="bubble typing";
-bubble.innerHTML="<i></i><i></i><i></i>";
-
-body.append(sender,bubble);
-row.append(av,body);
-$("#chat").append(row);
-$("#chat").scrollTop=$("#chat").scrollHeight;
+function typing(label="مساعد مستشفى الحيدرية يكتب..."){
+ showChat();
+ const row=document.createElement("div");
+ row.className="msg";
+ row.id="typing";
+ const av=document.createElement("div");
+ av.className="avatar";
+ av.textContent="✚";
+ const body=document.createElement("div");
+ body.className="body";
+ const sender=document.createElement("div");
+ sender.className="sender";
+ sender.textContent=label;
+ const bubble=document.createElement("div");
+ bubble.className="bubble typing";
+ bubble.innerHTML="<i></i><i></i><i></i>";
+ body.append(sender,bubble);
+ row.append(av,body);
+ $("#chat").append(row);
+ $("#chat").scrollTop=$("#chat").scrollHeight;
+ return row;
 }
 
 function answerOf(d){
@@ -435,44 +431,46 @@ return a;
 }
 
 async function send(q){
-q=q.trim();
-if(!q||busy)return;
-busy=true;
-$("#send").disabled=true;
-try {
-  const proof = await window.getHospitalTurnstileToken();
-  if(!proof) throw new Error("Cloudflare verification timed out. Please retry.");
-  add(q,"user");
-  history.push({role:"user",text:q});
-  $("#prompt").value="";
-  $("#prompt").style.height="auto";
-  typing();
-  const a=await ask(q, proof);
-  $("#typing")?.remove();
-  add(a,"assistant");
-  speak(a);
-  history.push({role:"model",text:a});
-  history=history.slice(-12);
-} catch(e) {
-  console.error("Hospital assistant send failed:",e);
-  $("#typing")?.remove();
-  const message = String(e?.message || "");
-  if(message.includes("Cloudflare script did not load")) {
-    add("تعذر تحميل خدمة التحقق الأمني. تأكد من اتصال الإنترنت أو جرّب فتح الموقع بمتصفح Chrome.","assistant");
-  } else if(message.includes("Cloudflare widget")) {
-    add("تعذر تهيئة التحقق الأمني. حدّث الصفحة وحاول مرة أخرى.","assistant");
-  } else {
-    add("تعذر إكمال التحقق أو الاتصال بالمساعد حالياً. حاول مرة أخرى بعد قليل.","assistant");
-  }
-} finally {
-  window.hospitalTurnstileToken = null;
-  if(window.turnstile && window.hospitalTurnstileWidgetId !== null) {
-    try { window.turnstile.reset(window.hospitalTurnstileWidgetId); } catch(e) {}
-  }
-  busy=false;
-  $("#send").disabled=false;
-  $("#prompt").focus();
-}
+ q=q.trim();
+ if(!q||busy)return;
+ busy=true;
+ $("#send").disabled=true;
+ const waitRow=typing("جارٍ التحقق الأمني...");
+ try {
+   const proof = await window.getHospitalTurnstileToken();
+   if(!proof) throw new Error("Cloudflare verification timed out. Please retry.");
+   add(q,"user");
+   history.push({role:"user",text:q});
+   $("#prompt").value="";
+   $("#prompt").style.height="auto";
+   const waitLabel=waitRow?.querySelector(".sender");
+   if(waitLabel) waitLabel.textContent="مساعد مستشفى الحيدرية يكتب...";
+   const a=await ask(q, proof);
+   $("#typing")?.remove();
+   add(a,"assistant");
+   speak(a);
+   history.push({role:"model",text:a});
+   history=history.slice(-12);
+ } catch(e) {
+   console.error("Hospital assistant send failed:",e);
+   $("#typing")?.remove();
+   const message = String(e?.message || "");
+   if(message.includes("Cloudflare script did not load")) {
+     add("تعذر تحميل خدمة التحقق الأمني. تأكد من اتصال الإنترنت أو جرّب فتح الموقع بمتصفح Chrome.","assistant");
+   } else if(message.includes("Cloudflare widget")) {
+     add("تعذر تهيئة التحقق الأمني. حدّث الصفحة وحاول مرة أخرى.","assistant");
+   } else {
+     add("تعذر إكمال التحقق أو الاتصال بالمساعد حالياً. حاول مرة أخرى بعد قليل.","assistant");
+   }
+ } finally {
+   window.hospitalTurnstileToken = null;
+   if(window.turnstile && window.hospitalTurnstileWidgetId !== null) {
+     try { window.turnstile.reset(window.hospitalTurnstileWidgetId); } catch(e) {}
+   }
+   busy=false;
+   $("#send").disabled=false;
+   $("#prompt").focus();
+ }
 }
 
 $("#form").addEventListener("submit",e=>{
