@@ -237,49 +237,51 @@ window.hospitalTurnstileReady = function(token) {
 };
 window.hospitalTurnstileExpired = function() {
   window.hospitalTurnstileToken = null;
+};
+window.hospitalTurnstileError = function(code) {
+  console.error("Turnstile client error:", code);
+  window.hospitalTurnstileToken = null;
   if (window.hospitalTurnstileResolve) {
     window.hospitalTurnstileResolve(null);
     window.hospitalTurnstileResolve = null;
   }
 };
-window.hospitalTurnstileError = window.hospitalTurnstileExpired;
 window.renderHospitalTurnstile = function() {
   if (!window.turnstile || window.hospitalTurnstileWidgetId !== null) return;
-  window.hospitalTurnstileWidgetId = window.turnstile.render("#hospital-turnstile", {
-    sitekey: "0x4AAAAAAGBVRWJAI9qTTpMS",
-    action: "hospital_ai",
-    execution: "execute",
-    appearance: "execute",
-    callback: window.hospitalTurnstileReady,
-    "expired-callback": window.hospitalTurnstileExpired,
-    "error-callback": window.hospitalTurnstileError,
-    size: "invisible"
+  window.turnstile.ready(function() {
+    if (window.hospitalTurnstileWidgetId !== null) return;
+    window.hospitalTurnstileWidgetId = window.turnstile.render("#hospital-turnstile", {
+      sitekey: "0x4AAAAAAGBVRWJAI9qTTpMS",
+      action: "hospital_ai",
+      callback: window.hospitalTurnstileReady,
+      "expired-callback": window.hospitalTurnstileExpired,
+      "error-callback": window.hospitalTurnstileError,
+      "timeout-callback": window.hospitalTurnstileExpired,
+      retry: "auto",
+      "refresh-expired": "auto"
+    });
   });
 };
 window.getHospitalTurnstileToken = function() {
   return new Promise((resolve) => {
+    if (window.hospitalTurnstileToken) {
+      resolve(window.hospitalTurnstileToken);
+      return;
+    }
     if (!window.turnstile || window.hospitalTurnstileWidgetId === null) {
       resolve(null);
       return;
     }
-    window.hospitalTurnstileToken = null;
     window.hospitalTurnstileResolve = resolve;
-    try {
-      window.turnstile.execute(window.hospitalTurnstileWidgetId);
-      setTimeout(() => {
-        if (window.hospitalTurnstileResolve === resolve) {
-          window.hospitalTurnstileResolve = null;
-          resolve(null);
-          try { window.turnstile.reset(window.hospitalTurnstileWidgetId); } catch (_) {}
-        }
-      }, 15000);
-    } catch (_) {
-      window.hospitalTurnstileResolve = null;
-      resolve(null);
-    }
+    setTimeout(() => {
+      if (window.hospitalTurnstileResolve === resolve) {
+        window.hospitalTurnstileResolve = null;
+        resolve(null);
+      }
+    }, 45000);
   });
 };
-</script>
+
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=renderHospitalTurnstile&render=explicit" async defer></script>
 <script>
 const SUPABASE_URL="https://dwffkopuisuyqpgedowp.supabase.co";
