@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "al-haydariyah-v2";
+const CACHE_NAME = "al-haydariyah-v3";
 
 const APP_FILES = [
   "./",
