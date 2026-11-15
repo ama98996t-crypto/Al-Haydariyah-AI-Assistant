@@ -214,7 +214,7 @@ textarea::placeholder{color:#9aa8aa}
 </main>
 
 <div class="composer-wrap">
-<div id="hospital-turnstile" aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);"></div>
+<div id="hospital-turnstile" aria-hidden="true" style="position:fixed;left:-10000px;top:0;width:300px;height:65px;overflow:visible;pointer-events:none;"></div>
 <form class="composer" id="form">
 <textarea id="prompt" rows="1" placeholder="اكتب رسالتك هنا..." required></textarea>
 <button class="send" id="voice" type="button" aria-label="إملاء صوتي">🎙</button>
@@ -255,7 +255,6 @@ window.renderHospitalTurnstile = function() {
             sitekey: "0x4AAAAAAGBVRWJAI9qTTpMS",
             action: "hospital_ai",
             execution: "execute",
-            appearance: "execute",
             size: "invisible",
             callback: window.hospitalTurnstileReady,
             "error-callback": window.hospitalTurnstileFail,
@@ -264,18 +263,21 @@ window.renderHospitalTurnstile = function() {
             retry: "auto",
             "refresh-expired": "auto"
           });
+          if (typeof id !== "string" || !id) throw new Error("Turnstile returned an invalid widget id");
           window.hospitalTurnstileWidgetId = id;
           clearTimeout(timer);
           resolve(id);
         } catch (err) {
           clearTimeout(timer);
-          console.error(err);
+          console.error("Turnstile render error:", err);
+          window.hospitalTurnstileInitPromise = null;
           resolve(null);
         }
       });
     } catch (err) {
       clearTimeout(timer);
-      console.error(err);
+      console.error("Turnstile ready error:", err);
+      window.hospitalTurnstileInitPromise = null;
       resolve(null);
     }
   });
