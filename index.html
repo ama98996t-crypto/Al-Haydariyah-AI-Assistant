@@ -11,7 +11,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
 :root{
  --navy:#102f46;--navy2:#173f59;--blue:#286985;--pale:#edf4f5;
@@ -214,7 +213,6 @@ textarea::placeholder{color:#9aa8aa}
 </main>
 
 <div class="composer-wrap">
-<div id="hospital-turnstile" aria-label="التحقق الأمني" style="display:flex;justify-content:center;align-items:center;width:100%;min-height:65px;margin:0 auto 8px;overflow:visible;pointer-events:auto;"></div>
 <form class="composer" id="form">
 <textarea id="prompt" rows="1" placeholder="اكتب رسالتك هنا..." required></textarea>
 <button class="send" id="voice" type="button" aria-label="إملاء صوتي">🎙</button>
@@ -226,106 +224,7 @@ textarea::placeholder{color:#9aa8aa}
 </div>
 
 <script>
-window.hospitalTurnstileToken = null;
-window.hospitalTurnstileWidgetId = null;
-window.hospitalTurnstileResolve = null;
-window.hospitalTurnstileInitPromise = null;
-window.hospitalTurnstileReady = function(token) {
-  window.hospitalTurnstileToken = token;
-  const done = window.hospitalTurnstileResolve;
-  window.hospitalTurnstileResolve = null;
-  if (done) done(token);
-};
-window.hospitalTurnstileFail = function(reason) {
-  console.error("Turnstile:", reason);
-  const done = window.hospitalTurnstileResolve;
-  window.hospitalTurnstileResolve = null;
-  if (done) done(null);
-};
-window.renderHospitalTurnstile = function() {
-  if (!window.turnstile || typeof window.turnstile.render !== "function") {
-    console.error("Turnstile API is not ready", window.turnstile);
-    return null;
-  }
-  if (window.hospitalTurnstileWidgetId !== null) return window.hospitalTurnstileWidgetId;
-  try {
-    const id = window.turnstile.render("#hospital-turnstile", {
-      sitekey: "0x4AAAAAAGBVRWJAI9qTTpMS",
-      action: "hospital_ai",
-      execution: "execute",
-      size: "normal",
-      callback: window.hospitalTurnstileReady,
-      "error-callback": window.hospitalTurnstileFail,
-      "expired-callback": () => { window.hospitalTurnstileToken = null; },
-      "timeout-callback": () => { window.hospitalTurnstileToken = null; },
-      retry: "auto",
-      "refresh-expired": "auto"
-    });
-    if (typeof id !== "string" || !id) {
-      console.error("Turnstile render returned no widget id:", id);
-      return null;
-    }
-    window.hospitalTurnstileWidgetId = id;
-    return id;
-  } catch (err) {
-    console.error("Turnstile render exception:", err);
-    return null;
-  }
-};
-window.getHospitalTurnstileToken = async function() {
-  const started = Date.now();
-  while (!window.turnstile && Date.now() - started < 12000) {
-    await new Promise(resolve => setTimeout(resolve, 200));
-  }
-  if (!window.turnstile) throw new Error("Cloudflare script did not load. Check connection or browser content blocker.");
 
-  if (window.hospitalTurnstileToken) {
-    const cached = window.hospitalTurnstileToken;
-    window.hospitalTurnstileToken = null;
-    return cached;
-  }
-
-  return await new Promise(resolve => {
-    let settled = false;
-    const finish = token => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      window.hospitalTurnstileResolve = null;
-      resolve(token || null);
-    };
-    window.hospitalTurnstileResolve = finish;
-    const timer = setTimeout(() => finish(null), 20000);
-
-    try {
-      if (window.hospitalTurnstileWidgetId === null) {
-        const id = window.turnstile.render("#hospital-turnstile", {
-          sitekey: "0x4AAAAAAGBVRWJAI9qTTpMS",
-          action: "hospital_ai",
-          execution: "render",
-          size: "normal",
-          callback: window.hospitalTurnstileReady,
-          "error-callback": window.hospitalTurnstileFail,
-          "expired-callback": () => { window.hospitalTurnstileToken = null; },
-          "timeout-callback": () => { window.hospitalTurnstileToken = null; },
-          retry: "auto",
-          "refresh-expired": "auto"
-        });
-        if (typeof id !== "string" || !id) {
-          finish(null);
-          return;
-        }
-        window.hospitalTurnstileWidgetId = id;
-      } else {
-        window.turnstile.reset(window.hospitalTurnstileWidgetId);
-      }
-    } catch (err) {
-      console.error("Turnstile execution failed:", err);
-      finish(null);
-    }
-  });
-};
-</script>
 <script>
 const SUPABASE_URL="https://dwffkopuisuyqpgedowp.supabase.co";
 const SUPABASE_KEY="sb_publishable_2wT5I3b3mY1IPzbFN5NllQ_Ja136LJn";
@@ -434,15 +333,14 @@ if(typeof d[k]==="string"&&d[k].trim())return d[k].trim();
 return d.data?answerOf(d.data):"";
 }
 
-async function ask(q, proof){
-if(!proof) throw Error("تعذر إكمال التحقق الأمني.");
+async function ask(q){
 const {data,error}=await db.functions.invoke("hospital-ai",{
 body:{
 message:q,
 visitor_id:visitorId,
 event_type:"chat",
 history:history.slice(-11,-1),
-turnstile_token:proof
+
 }
 });
 
@@ -457,17 +355,15 @@ async function send(q){
  if(!q||busy)return;
  busy=true;
  $("#send").disabled=true;
- const waitRow=typing("جارٍ التحقق الأمني...");
+ const waitRow=typing("مساعد مستشفى الحيدرية يكتب...");
  try {
-   const proof = await window.getHospitalTurnstileToken();
-   if(!proof) throw new Error("Cloudflare verification timed out. Please retry.");
    add(q,"user");
    history.push({role:"user",text:q});
    $("#prompt").value="";
    $("#prompt").style.height="auto";
    const waitLabel=waitRow?.querySelector(".sender");
    if(waitLabel) waitLabel.textContent="مساعد مستشفى الحيدرية يكتب...";
-   const a=await ask(q, proof);
+   const a=await ask(q);
    $("#typing")?.remove();
    add(a,"assistant");
    speak(a);
@@ -485,10 +381,6 @@ async function send(q){
      add("تعذر إكمال التحقق أو الاتصال بالمساعد حالياً. حاول مرة أخرى بعد قليل.","assistant");
    }
  } finally {
-   window.hospitalTurnstileToken = null;
-   if(window.turnstile && window.hospitalTurnstileWidgetId !== null) {
-     try { window.turnstile.reset(window.hospitalTurnstileWidgetId); } catch(e) {}
-   }
    busy=false;
    $("#send").disabled=false;
    $("#prompt").focus();
