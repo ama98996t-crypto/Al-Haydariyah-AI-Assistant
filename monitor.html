@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#0b3554"><title>مراقبة مساعد مستشفى الحيدرية</title>
-<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="icon" href="./hospital-logo.jpg" type="image/jpeg"><link rel="apple-touch-icon" href="./hospital-logo.jpg">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.95.0"></script>
 <style>
 :root{--n:#0b3554;--b:#12618c;--g:#c8aa70;--bg:#f2f6f8;--ink:#183348;--mut:#718493;--line:#e1e9ee}
@@ -21,7 +21,7 @@ button.secondary{background:#eaf2f6;color:var(--n)}.row{display:flex;gap:9px;fle
 .tag{display:inline-block;background:#eaf2f6;color:var(--n);padding:4px 8px;border-radius:20px;font-size:11px}
 @media(max-width:700px){.grid{grid-template-columns:repeat(2,1fr)}header{padding:14px 16px}.row>*{flex-basis:100%}}
 </style></head><body>
-<header><div><strong>لوحة مراقبة مساعد مستشفى الحيدرية</strong><small>لوحة خاصة — إدارة المستشفى</small></div><button id="logout" class="secondary hidden">تسجيل الخروج</button></header>
+<header><div style="display:flex;align-items:center;gap:12px"><img src="./hospital-logo.jpg" alt="شعار مستشفى الحيدرية" style="width:48px;height:48px;object-fit:contain;background:#fff;border-radius:50%;padding:3px"><div><strong>لوحة مراقبة مساعد مستشفى الحيدرية</strong><small>لوحة خاصة — إدارة المستشفى</small></div></div><button id="logout" class="secondary hidden">تسجيل الخروج</button></header>
 <main>
 <section id="login" class="panel" style="max-width:440px;margin:50px auto">
 <h2>دخول المدير</h2><p class="muted">هذه اللوحة مخصصة لحساب المدير المخوّل فقط. لا تستخدم حساباً مشتركاً.</p>

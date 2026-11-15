@@ -1,11 +1,11 @@
 
-const CACHE_NAME = "al-haydariyah-v3";
+const CACHE_NAME = "al-haydariyah-v4";
 
 const APP_FILES = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./icon.svg"
+  "./hospital-logo.jpg"
 ];
 
 self.addEventListener("install", (event) => {
