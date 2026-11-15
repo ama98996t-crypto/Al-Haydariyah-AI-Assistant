@@ -243,45 +243,34 @@ window.hospitalTurnstileFail = function(reason) {
   if (done) done(null);
 };
 window.renderHospitalTurnstile = function() {
-  if (!window.turnstile) return Promise.resolve(null);
-  if (window.hospitalTurnstileWidgetId !== null) return Promise.resolve(window.hospitalTurnstileWidgetId);
-  if (window.hospitalTurnstileInitPromise) return window.hospitalTurnstileInitPromise;
-  window.hospitalTurnstileInitPromise = new Promise(resolve => {
-    const timer = setTimeout(() => resolve(null), 8000);
-    try {
-      window.turnstile.ready(() => {
-        try {
-          const id = window.turnstile.render("#hospital-turnstile", {
-            sitekey: "0x4AAAAAAGBVRWJAI9qTTpMS",
-            action: "hospital_ai",
-            execution: "execute",
-            size: "invisible",
-            callback: window.hospitalTurnstileReady,
-            "error-callback": window.hospitalTurnstileFail,
-            "expired-callback": () => { window.hospitalTurnstileToken = null; },
-            "timeout-callback": () => { window.hospitalTurnstileToken = null; },
-            retry: "auto",
-            "refresh-expired": "auto"
-          });
-          if (typeof id !== "string" || !id) throw new Error("Turnstile returned an invalid widget id");
-          window.hospitalTurnstileWidgetId = id;
-          clearTimeout(timer);
-          resolve(id);
-        } catch (err) {
-          clearTimeout(timer);
-          console.error("Turnstile render error:", err);
-          window.hospitalTurnstileInitPromise = null;
-          resolve(null);
-        }
-      });
-    } catch (err) {
-      clearTimeout(timer);
-      console.error("Turnstile ready error:", err);
-      window.hospitalTurnstileInitPromise = null;
-      resolve(null);
+  if (!window.turnstile || typeof window.turnstile.render !== "function") {
+    console.error("Turnstile API is not ready", window.turnstile);
+    return null;
+  }
+  if (window.hospitalTurnstileWidgetId !== null) return window.hospitalTurnstileWidgetId;
+  try {
+    const id = window.turnstile.render("#hospital-turnstile", {
+      sitekey: "0x4AAAAAAGBVRWJAI9qTTpMS",
+      action: "hospital_ai",
+      execution: "execute",
+      size: "invisible",
+      callback: window.hospitalTurnstileReady,
+      "error-callback": window.hospitalTurnstileFail,
+      "expired-callback": () => { window.hospitalTurnstileToken = null; },
+      "timeout-callback": () => { window.hospitalTurnstileToken = null; },
+      retry: "auto",
+      "refresh-expired": "auto"
+    });
+    if (typeof id !== "string" || !id) {
+      console.error("Turnstile render returned no widget id:", id);
+      return null;
     }
-  });
-  return window.hospitalTurnstileInitPromise;
+    window.hospitalTurnstileWidgetId = id;
+    return id;
+  } catch (err) {
+    console.error("Turnstile render exception:", err);
+    return null;
+  }
 };
 window.getHospitalTurnstileToken = async function() {
   const started = Date.now();
@@ -289,8 +278,8 @@ window.getHospitalTurnstileToken = async function() {
     await new Promise(resolve => setTimeout(resolve, 200));
   }
   if (!window.turnstile) throw new Error("Cloudflare script did not load. Check connection or browser content blocker.");
-  const id = await window.renderHospitalTurnstile();
-  if (id === null || id === undefined) throw new Error("Cloudflare widget could not initialize.");
+  const id = window.renderHospitalTurnstile();
+  if (id === null || id === undefined) throw new Error("Cloudflare widget could not initialize. Check the browser console for the exact Turnstile error.");
   window.hospitalTurnstileToken = null;
   return await new Promise(resolve => {
     const finish = token => resolve(token);
