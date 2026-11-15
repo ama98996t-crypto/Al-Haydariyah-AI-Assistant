@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /monitor.html
+
+Sitemap: https://ama98996t-crypto.github.io/Al-Haydariyah-AI-Assistant/sitemap.xml
