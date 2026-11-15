@@ -278,28 +278,50 @@ window.getHospitalTurnstileToken = async function() {
     await new Promise(resolve => setTimeout(resolve, 200));
   }
   if (!window.turnstile) throw new Error("Cloudflare script did not load. Check connection or browser content blocker.");
-  const id = window.renderHospitalTurnstile();
-  if (id === null || id === undefined) throw new Error("Cloudflare widget could not initialize. Check the browser console for the exact Turnstile error.");
-  window.hospitalTurnstileToken = null;
+
+  if (window.hospitalTurnstileToken) {
+    const cached = window.hospitalTurnstileToken;
+    window.hospitalTurnstileToken = null;
+    return cached;
+  }
+
   return await new Promise(resolve => {
-    const finish = token => resolve(token);
-    window.hospitalTurnstileResolve = finish;
-    const timer = setTimeout(() => {
-      if (window.hospitalTurnstileResolve === finish) window.hospitalTurnstileResolve = null;
-      resolve(null);
-    }, 12000);
-    const oldReady = window.hospitalTurnstileReady;
-    window.hospitalTurnstileReady = token => {
-      clearTimeout(timer);
-      oldReady(token);
-    };
-    try {
-      window.turnstile.execute(id);
-    } catch (err) {
+    let settled = false;
+    const finish = token => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
       window.hospitalTurnstileResolve = null;
-      console.error(err);
-      resolve(null);
+      resolve(token || null);
+    };
+    window.hospitalTurnstileResolve = finish;
+    const timer = setTimeout(() => finish(null), 20000);
+
+    try {
+      if (window.hospitalTurnstileWidgetId === null) {
+        const id = window.turnstile.render("#hospital-turnstile", {
+          sitekey: "0x4AAAAAAGBVRWJAI9qTTpMS",
+          action: "hospital_ai",
+          execution: "render",
+          size: "normal",
+          callback: window.hospitalTurnstileReady,
+          "error-callback": window.hospitalTurnstileFail,
+          "expired-callback": () => { window.hospitalTurnstileToken = null; },
+          "timeout-callback": () => { window.hospitalTurnstileToken = null; },
+          retry: "auto",
+          "refresh-expired": "auto"
+        });
+        if (typeof id !== "string" || !id) {
+          finish(null);
+          return;
+        }
+        window.hospitalTurnstileWidgetId = id;
+      } else {
+        window.turnstile.reset(window.hospitalTurnstileWidgetId);
+      }
+    } catch (err) {
+      console.error("Turnstile execution failed:", err);
+      finish(null);
     }
   });
 };
