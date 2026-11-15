@@ -224,6 +224,72 @@ textarea::placeholder{color:#9aa8aa}
  textarea{font-size:12px;padding:8px}
  .note{font-size:8px}
 }
+/* Distinct royal dashboard redesign */
+.welcome{width:min(900px,calc(100% - 28px));margin:0 auto;max-height:100%;overflow:auto;padding:18px 8px 22px;text-align:right;animation:riseIn .45s ease both}
+.welcome:before{display:none}
+.home-topline{display:flex;align-items:center;justify-content:space-between;margin:0 2px 12px}
+.eyebrow{font-size:10px;font-weight:800;letter-spacing:.4px;color:var(--gold)}
+.home-live{font-size:9px;color:var(--muted);border:1px solid var(--line);border-radius:30px;padding:5px 10px}
+.hero-panel{position:relative;overflow:hidden;min-height:205px;border-radius:25px;padding:22px 22px 20px;background:linear-gradient(115deg,#0a2639 0%,#123b54 58%,#1e5368 100%);color:white;display:flex;align-items:center;justify-content:space-between;box-shadow:0 16px 36px #102f4624;border:1px solid #c4a36a88}
+.hero-copy{position:relative;z-index:2;max-width:68%}
+.hero-kicker{font-size:10px;color:#e1cfaa}
+.hero-panel h1{font-size:clamp(23px,5vw,32px);line-height:1.5;color:#fff;margin:5px 0 6px;font-weight:800}
+.hero-panel p{font-size:10px;line-height:1.9;color:#d7e1e5;margin:0 0 13px;max-width:380px}
+.hero-cta{border:1px solid #d4bb88;background:linear-gradient(110deg,#d4b77f,#b69254);color:#102f46;border-radius:12px;padding:8px 14px;font-size:10px;font-weight:800;cursor:pointer}
+.hero-cta span{font-size:15px;margin-right:8px}
+.hero-emblem{position:relative;z-index:2;width:104px;flex:0 0 104px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.hero-emblem img{width:76px;height:76px;object-fit:contain;padding:8px;border:1px solid #d4bb8877;border-radius:24px;background:#ffffff10;box-shadow:0 0 0 7px #ffffff08}
+.hero-emblem span{font-size:8px;color:#e3d5b8;white-space:nowrap}
+.hero-orbit{position:absolute;border:1px solid #d6c08a26;border-radius:50%;pointer-events:none}
+.orbit-one{width:260px;height:260px;left:-75px;top:-110px}
+.orbit-two{width:190px;height:190px;left:-40px;top:-75px}
+.section-heading{display:flex;align-items:end;justify-content:space-between;margin:20px 3px 10px}
+.section-heading h2{font-size:17px;color:var(--ink);margin:2px 0 0;font-weight:800}
+.section-count{font-size:9px;color:var(--muted);padding-bottom:3px}
+.service-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.service-card{position:relative;min-height:108px;border:1px solid var(--line);border-radius:17px;background:var(--paper);color:var(--ink);padding:12px 13px;text-align:right;text-decoration:none;display:flex;flex-direction:column;align-items:flex-start;box-shadow:0 5px 16px #102f4609;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s}
+.service-card:active{transform:scale(.98)}
+.service-card:hover{border-color:#c4a36a;box-shadow:0 9px 24px #102f4614;transform:translateY(-2px)}
+.service-icon{width:32px;height:32px;border-radius:11px;background:linear-gradient(145deg,#102f46,#286985);color:#e5d1a7;display:grid;place-items:center;font-size:17px;margin-bottom:7px}
+.service-card b{font-size:11px;font-weight:800}
+.service-card small{font-size:9px;color:var(--muted);margin-top:2px}
+.card-arrow{position:absolute;left:13px;bottom:12px;color:var(--gold);font-size:15px}
+.home-note{margin:13px 2px 0;padding:9px 12px;border-radius:12px;background:#c4a36a12;color:var(--muted);font-size:9px;line-height:1.8}
+.home-note span{color:var(--gold);margin-left:5px}
+body[data-theme="dark"] .service-card{background:#152f3e;border-color:#294452;color:#e8edf0}
+body[data-theme="dark"] .section-heading h2{color:#f1e6ce}
+body[data-theme="dark"] .home-note{background:#c4a36a16}
+#chat{padding:24px clamp(14px,5vw,60px);background:radial-gradient(ellipse at 90% 0%,#c4a36a0b,transparent 42%)}
+.msg{gap:9px;margin-bottom:17px}
+.avatar{border-radius:50%;width:34px;height:34px;flex-basis:34px;background:linear-gradient(145deg,#102f46,#286985);color:#e5d1a7;border:1px solid #c4a36a66}
+.bubble{border-radius:4px 18px 18px 18px;padding:14px 16px;line-height:2.1;font-size:12px;box-shadow:0 8px 22px #102f460d}
+.user .bubble{border-radius:18px 4px 18px 18px}
+.composer-wrap{padding:11px 16px max(9px,env(safe-area-inset-bottom));}
+.composer{border:1px solid #c4a36a99;border-radius:23px;padding:8px;box-shadow:0 8px 25px #102f4610}
+.bottom-nav{height:58px;gap:clamp(16px,8vw,70px)}
+.nav-item{min-width:62px}
+@media(max-width:600px){
+ .welcome{width:calc(100% - 20px);padding:12px 0 16px}
+ .hero-panel{min-height:190px;padding:18px 15px;border-radius:21px}
+ .hero-copy{max-width:70%}
+ .hero-panel h1{font-size:23px}
+ .hero-panel p{font-size:9px}
+ .hero-emblem{width:82px;flex-basis:82px}
+ .hero-emblem img{width:65px;height:65px;border-radius:20px}
+ .service-grid{gap:8px}
+ .service-card{min-height:103px;padding:10px;border-radius:15px}
+ .service-card b{font-size:10px}
+ .service-card small{font-size:8px}
+ .section-heading{margin-top:16px}
+ .section-heading h2{font-size:15px}
+ #chat{padding:16px 11px}
+ .bubble{font-size:12px;line-height:2;padding:12px 14px}
+ .bottom-nav{height:54px;gap:12px}
+ .nav-item{min-width:54px;padding:4px 8px}
+ .composer-wrap{padding:9px 10px max(8px,env(safe-area-inset-bottom))}
+}
+@media(prefers-reduced-motion:reduce){.service-card,.hero-cta{transition:none}}
+
 @media(prefers-reduced-motion:reduce){
  *,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
@@ -248,18 +314,27 @@ textarea::placeholder{color:#9aa8aa}
 
 <main>
 <section class="welcome" id="welcome">
-<div class="mark" style="background:transparent;box-shadow:none"><img src="./icon.svg" alt="شعار مستشفى الحيدرية" style="width:76px;height:76px;border-radius:22px"></div>
-<h1>مساعد مستشفى الحيدرية</h1>
-<p>أهلاً بيك في مساعد مستشفى الحيدرية. اسأل عن الأقسام والخدمات والأطباء والإحصائيات، وأجاوبك باللهجة العراقية.</p>
-<div class="chips">
-<button class="chip" data-q="السلام عليكم">السلام والتحية</button>
-<button class="chip" data-q="شنو أقسام مستشفى الحيدرية؟">أقسام المستشفى</button>
-<button class="chip" data-q="شنو الخدمات المتوفرة بالمستشفى؟">الخدمات الطبية</button>
-<button class="chip" data-q="منو مدير المستشفى؟">إدارة المستشفى</button>
-<button class="chip" data-q="أريد أعرف إحصائيات المستشفى">إحصائيات المستشفى</button>
-<button class="chip" data-q="شلون أقدم شكوى أو اقتراح؟">الشكاوى والمقترحات</button>
-<a class="chip" href="./news.html">أخبار وإعلانات المستشفى</a>
-</div>
+  <div class="home-topline"><span class="eyebrow">الخدمات الرقمية للمستشفى</span><span class="home-live"><i class="dot"></i>متاح الآن</span></div>
+  <div class="hero-panel">
+    <div class="hero-copy">
+      <span class="hero-kicker">أهلاً بك في</span>
+      <h1>مساعد مستشفى<br>الحيدرية العام</h1>
+      <p>بوابتك الذكية للتعرّف على الأقسام والخدمات والمعلومات الرسمية للمستشفى.</p>
+      <button class="hero-cta" data-q="السلام عليكم، عرفني بخدمات مساعد مستشفى الحيدرية">ابدأ المحادثة <span>←</span></button>
+    </div>
+    <div class="hero-emblem"><img src="./icon.svg" alt="شعار مستشفى الحيدرية"><span>رعاية · معرفة · خدمة</span></div>
+    <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
+  </div>
+  <div class="section-heading"><div><span class="eyebrow">كيف يمكننا مساعدتك؟</span><h2>الخدمات السريعة</h2></div><span class="section-count">06 خدمات</span></div>
+  <div class="service-grid">
+    <button class="service-card" data-q="شنو أقسام مستشفى الحيدرية العام؟"><span class="service-icon">✚</span><b>أقسام المستشفى</b><small>تعرّف على الأقسام</small><span class="card-arrow">←</span></button>
+    <button class="service-card" data-q="شنو الخدمات الطبية المتوفرة بالمستشفى؟"><span class="service-icon">⚕</span><b>الخدمات الطبية</b><small>الخدمات المتاحة</small><span class="card-arrow">←</span></button>
+    <button class="service-card" data-q="من هم الأطباء واختصاصاتهم في مستشفى الحيدرية؟"><span class="service-icon">♙</span><b>الأطباء</b><small>الأسماء والاختصاصات</small><span class="card-arrow">←</span></button>
+    <button class="service-card" data-q="اعرض لي إحصائيات مستشفى الحيدرية المنشورة"><span class="service-icon">▥</span><b>الإحصائيات</b><small>أرقام وتقارير المستشفى</small><span class="card-arrow">←</span></button>
+    <button class="service-card" data-q="شلون أقدم شكوى أو اقتراح للمستشفى؟"><span class="service-icon">✉</span><b>الشكاوى والمقترحات</b><small>إرسال ملاحظتك</small><span class="card-arrow">←</span></button>
+    <a class="service-card" href="./news.html"><span class="service-icon">▤</span><b>الأخبار والإعلانات</b><small>آخر مستجدات المستشفى</small><span class="card-arrow">←</span></a>
+  </div>
+  <div class="home-note"><span>✦</span> اسأل المساعد مباشرة من حقل الكتابة بالأسفل، وسيساعدك بالمعلومات المتاحة.</div>
 </section>
 
 <section id="chat" aria-live="polite"></section>
