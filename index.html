@@ -228,6 +228,7 @@ textarea::placeholder{color:#9aa8aa}
 window.hospitalTurnstileToken = null;
 window.hospitalTurnstileWidgetId = null;
 window.hospitalTurnstileResolve = null;
+window.hospitalTurnstileInitPromise = null;
 window.hospitalTurnstileReady = function(token) {
   window.hospitalTurnstileToken = token;
   if (window.hospitalTurnstileResolve) {
@@ -248,41 +249,65 @@ window.hospitalTurnstileError = function(code) {
 };
 window.renderHospitalTurnstile = function() {
   if (!window.turnstile || window.hospitalTurnstileWidgetId !== null) return;
-  window.turnstile.ready(function() {
-    if (window.hospitalTurnstileWidgetId !== null) return;
-    window.hospitalTurnstileWidgetId = window.turnstile.render("#hospital-turnstile", {
-      sitekey: "0x4AAAAAAGBVRWJAI9qTTpMS",
-      action: "hospital_ai",
-      callback: window.hospitalTurnstileReady,
-      "expired-callback": window.hospitalTurnstileExpired,
-      "error-callback": window.hospitalTurnstileError,
-      "timeout-callback": window.hospitalTurnstileExpired,
-      retry: "auto",
-      "refresh-expired": "auto"
+  window.hospitalTurnstileInitPromise = new Promise((resolve) => {
+    window.turnstile.ready(function() {
+      try {
+        window.hospitalTurnstileWidgetId = window.turnstile.render("#hospital-turnstile", {
+          sitekey: "0x4AAAAAAGBVRWJAI9qTTpMS",
+          action: "hospital_ai",
+          execution: "execute",
+          appearance: "execute",
+          callback: window.hospitalTurnstileReady,
+          "expired-callback": window.hospitalTurnstileExpired,
+          "error-callback": window.hospitalTurnstileError,
+          "timeout-callback": window.hospitalTurnstileExpired,
+          retry: "auto",
+          "refresh-expired": "auto",
+          size: "invisible"
+        });
+        resolve(window.hospitalTurnstileWidgetId);
+      } catch (e) {
+        console.error("Turnstile initialization failed:", e);
+        resolve(null);
+      }
     });
   });
 };
-window.getHospitalTurnstileToken = function() {
-  return new Promise((resolve) => {
-    if (window.hospitalTurnstileToken) {
-      resolve(window.hospitalTurnstileToken);
-      return;
-    }
-    if (!window.turnstile || window.hospitalTurnstileWidgetId === null) {
-      resolve(null);
-      return;
-    }
+window.getHospitalTurnstileToken = async function() {
+  if (window.hospitalTurnstileToken) return window.hospitalTurnstileToken;
+  if (!window.turnstile) {
+    await new Promise(resolve => {
+      const started = Date.now();
+      const poll = () => {
+        if (window.turnstile || Date.now() - started > 15000) return resolve();
+        setTimeout(poll, 150);
+      };
+      poll();
+    });
+  }
+  if (window.turnstile && window.hospitalTurnstileWidgetId === null) {
+    window.renderHospitalTurnstile();
+    if (window.hospitalTurnstileInitPromise) await window.hospitalTurnstileInitPromise;
+  }
+  if (!window.turnstile || window.hospitalTurnstileWidgetId === null) return null;
+  return await new Promise(resolve => {
     window.hospitalTurnstileResolve = resolve;
-    setTimeout(() => {
-      if (window.hospitalTurnstileResolve === resolve) {
-        window.hospitalTurnstileResolve = null;
-        resolve(null);
-      }
-    }, 45000);
+    try {
+      window.turnstile.execute(window.hospitalTurnstileWidgetId);
+      setTimeout(() => {
+        if (window.hospitalTurnstileResolve === resolve) {
+          window.hospitalTurnstileResolve = null;
+          resolve(null);
+        }
+      }, 20000);
+    } catch (e) {
+      console.error("Turnstile execute failed:", e);
+      window.hospitalTurnstileResolve = null;
+      resolve(null);
+    }
   });
 };
 
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=renderHospitalTurnstile&render=explicit" async defer></script>
 <script>
 const SUPABASE_URL="https://dwffkopuisuyqpgedowp.supabase.co";
 const SUPABASE_KEY="sb_publishable_2wT5I3b3mY1IPzbFN5NllQ_Ja136LJn";
