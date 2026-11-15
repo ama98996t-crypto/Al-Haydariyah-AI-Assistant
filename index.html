@@ -50,15 +50,29 @@
  --navy:#102f46;--navy2:#173f59;--blue:#286985;--pale:#edf4f5;
  --gold:#c4a36a;--gold-light:#e6d4ad;--ink:#183448;--muted:#758894;
  --line:#e5e9e8;--paper:#fffefa;--surface:#f8f8f4;
+ --shadow:0 12px 34px #102f4610;
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{
- font-family:Cairo,sans-serif;color:var(--ink);overflow:hidden;
+ font-family:Cairo,sans-serif;color:var(--ink);overflow:hidden;transition:background .3s,color .3s;
  background:radial-gradient(ellipse at 12% 12%,#e7dfce 0,transparent 36%),
  linear-gradient(135deg,#e9eeec 0%,#f6f4ee 52%,#e7edf0 100%);
 }
 button,textarea{font:inherit}
+body[data-theme="dark"]{--ink:#e8edf0;--muted:#a7b6bd;--line:#294452;--paper:#102431;--surface:#152f3e;background:radial-gradient(ellipse at 12% 12%,#284353 0,transparent 38%),linear-gradient(135deg,#0b1c27,#102b3a 55%,#142d39)}
+body[data-theme="dark"] .app{background:var(--paper);box-shadow:0 24px 80px #0005}
+body[data-theme="dark"] .welcome:before{border-color:#b99c6533}
+body[data-theme="dark"] h1{color:#f1e6ce}
+body[data-theme="dark"] .chip,body[data-theme="dark"] .composer{background:#183342;color:#e7edf0;border-color:#35515f}
+body[data-theme="dark"] .chip:hover{background:#234454}
+body[data-theme="dark"] .bubble{background:#1a3544;color:#e5edf0;border-color:#2e4c5b}
+body[data-theme="dark"] .user .bubble{background:linear-gradient(135deg,#214d63,#17394c);color:white}
+body[data-theme="dark"] .composer-wrap,body[data-theme="dark"] .bottom-nav{background:#102431;border-color:#294452}
+body[data-theme="dark"] textarea{color:#eef3f4}
+body[data-theme="dark"] .avatar{background:#1c3a49;color:#d8c397;border-color:#35515f}
+body[data-theme="dark"] #voice{background:#29414d;color:#e4d2a9;border-color:#49606a}
+body[data-theme="dark"] .note,body[data-theme="dark"] .foot{color:#9aabb3}
 .app{
  height:100dvh;max-width:1120px;margin:auto;background:var(--paper);
  display:flex;flex-direction:column;position:relative;overflow:hidden;
@@ -173,6 +187,11 @@ textarea::placeholder{color:#9aa8aa}
 .send:disabled{opacity:.45}
 .note{text-align:center;color:#929e9e;font-size:9px;margin:10px auto 0}
 .foot{text-align:center;color:#9da8a5;font-size:9px;margin-top:3px}
+ .bottom-nav{height:62px;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:clamp(18px,7vw,76px);border-top:1px solid var(--line);background:#fffefa}
+.nav-item{min-width:58px;border:0;background:transparent;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:1px;text-decoration:none;cursor:pointer;padding:5px 12px;border-radius:12px;transition:.2s}
+.nav-item span{font-size:19px;line-height:1.2}.nav-item small{font-size:9px;font-family:inherit}.nav-item.active,.nav-item:hover{color:var(--gold);background:#c4a36a12}
+@keyframes riseIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.welcome{animation:riseIn .55s ease both}.msg{animation:riseIn .28s ease both}
 @media(min-width:1121px){
  .app{height:calc(100dvh - 34px);margin:17px auto;border-radius:25px}
  header{border-radius:25px 25px 0 0}
@@ -199,6 +218,7 @@ textarea::placeholder{color:#9aa8aa}
  .body{max-width:86%}
  .bubble{font-size:12px;padding:11px 13px}
  .composer-wrap{padding:11px 10px max(10px,env(safe-area-inset-bottom))}
+ .bottom-nav{height:56px;gap:10px}.nav-item{min-width:55px;padding:4px 9px}
  .composer{border-radius:17px;padding:7px;gap:6px}
  .send{height:41px;width:42px;flex-basis:42px;border-radius:12px}
  textarea{font-size:12px;padding:8px}
@@ -221,6 +241,7 @@ textarea::placeholder{color:#9aa8aa}
 </div>
 <div class="right">
 <span class="status"><i class="dot"></i>متصل للمساعدة</span>
+<button class="icon" id="speechToggle" title="تشغيل أو إيقاف قراءة الردود" aria-label="تشغيل أو إيقاف الصوت">🔊</button>
 <button class="icon" id="new" title="محادثة جديدة">＋</button>
 </div>
 </header>
@@ -245,7 +266,12 @@ textarea::placeholder{color:#9aa8aa}
 
 
 </main>
-
+<nav class="bottom-nav" aria-label="التنقل الرئيسي">
+<button class="nav-item active" id="navHome" type="button"><span>⌂</span><small>الرئيسية</small></button>
+<button class="nav-item" id="navDepartments" type="button"><span>✚</span><small>الأقسام</small></button>
+<a class="nav-item" href="./news.html"><span>▤</span><small>الأخبار</small></a>
+<button class="nav-item" id="themeToggle" type="button"><span id="themeIcon">☾</span><small>المظهر</small></button>
+</nav>
 <div class="composer-wrap">
 <form class="composer" id="form">
 <textarea id="prompt" rows="1" placeholder="اكتب رسالتك هنا..." required></textarea>
@@ -290,6 +316,10 @@ function speak(text) {
  const u = new SpeechSynthesisUtterance(text);
  u.lang = "ar-IQ"; u.rate = 0.95; window.speechSynthesis.speak(u);
 }
+$("#speechToggle").addEventListener("click",()=>{
+ speechEnabled=!speechEnabled;$("#speechToggle").textContent=speechEnabled?"🔊":"🔇";
+ if(!speechEnabled&&"speechSynthesis" in window)window.speechSynthesis.cancel();
+});
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (Recognition) {
  const rec = new Recognition(); rec.lang = "ar-IQ"; rec.interimResults = false;
@@ -436,6 +466,13 @@ $("#form").requestSubmit();
 }
 });
 
+$("#navHome").addEventListener("click",()=>{$("#new").click();document.querySelectorAll(".nav-item").forEach(x=>x.classList.remove("active"));$("#navHome").classList.add("active")});
+$("#navDepartments").addEventListener("click",()=>send("شنو أقسام مستشفى الحيدرية العام والخدمات المتوفرة؟"));
+const themeKey="alh_theme";
+function applyTheme(theme){document.body.dataset.theme=theme;$("#themeIcon").textContent=theme==="dark"?"☀":"☾";try{localStorage.setItem(themeKey,theme)}catch(e){}}
+let savedTheme="light";try{savedTheme=localStorage.getItem(themeKey)||"light"}catch(e){}
+applyTheme(savedTheme);
+$("#themeToggle").addEventListener("click",()=>applyTheme(document.body.dataset.theme==="dark"?"light":"dark"));
 document.querySelectorAll("[data-q]").forEach(b=>{
 b.addEventListener("click",()=>send(b.dataset.q));
 });
