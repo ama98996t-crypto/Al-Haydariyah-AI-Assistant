@@ -419,26 +419,28 @@ sender.textContent=role==="user"?"أنت":"مساعد مستشفى الحيدر�
 const bubble=document.createElement("div");
 bubble.className="bubble";
 if(role==="assistant"){
-  // Render only a tiny safe Markdown subset; never inject model output as HTML.
-  const lines=String(text).split(/\\r?\\n/);
+  const lines=String(text).split("\n");
   for(const line of lines){
-    const item=line.match(/^\\s*(?:[-•]|(\\d+)[.)])\\s+(.*)$/);
-    const block=document.createElement(item?"div":"p");
-    block.style.margin=item?"4px 0":"0 0 8px";
-    if(item){block.style.paddingRight="4px";if(item[1])block.dataset.number=item[1];}
-    const value=item?item[2]:line;
-    const parts=value.split(/(\\*\\*[^*]+\\*\\*)/g);
-    for(const part of parts){
-      if(part.startsWith("**")&&part.endsWith("**")&&part.length>4){
+    const block=document.createElement("p");
+    block.style.margin="0 0 8px";
+    const value=line.replace(/^\s*(?:[-•]|\d+[.)])\s+/,"");
+    const parts=value.split("**");
+    parts.forEach((part,index)=>{
+      if(!part) return;
+      if(index%2===1){
         const strong=document.createElement("strong");
-        strong.textContent=part.slice(2,-2);
+        strong.textContent=part;
         block.append(strong);
-      }else block.append(document.createTextNode(part));
-    }
-    if(line.trim())bubble.append(block);
+      }else{
+        block.append(document.createTextNode(part));
+      }
+    });
+    if(line.trim()) bubble.append(block);
     else bubble.append(document.createElement("br"));
   }
-}else bubble.textContent=text;
+}else{
+  bubble.textContent=text;
+}
 
 body.append(sender,bubble);
 row.append(av,body);
