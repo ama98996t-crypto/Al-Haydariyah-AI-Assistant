@@ -236,7 +236,7 @@ textarea::placeholder{color:#9aa8aa}
 .hero-panel h1{font-size:clamp(23px,5vw,32px);line-height:1.5;color:#fff;margin:5px 0 6px;font-weight:800}
 .hero-panel p{font-size:10px;line-height:1.9;color:#d7e1e5;margin:0 0 13px;max-width:380px}
 .hero-cta{border:1px solid #d4bb88;background:linear-gradient(110deg,#d4b77f,#b69254);color:#102f46;border-radius:12px;padding:8px 14px;font-size:10px;font-weight:800;cursor:pointer}
-.hero-cta span{font-size:15px;margin-right:8px}
+.hero-cta span{font-size:15px;margin-right:8px}\n.install-cta{margin:9px 0 0;border:1px solid #e1cfaa;background:#ffffff12;color:#f5e9cf;border-radius:12px;padding:8px 14px;font-size:10px;font-weight:800;cursor:pointer}.install-cta[hidden]{display:none}
 .hero-emblem{position:relative;z-index:2;width:104px;flex:0 0 104px;display:flex;flex-direction:column;align-items:center;gap:8px}
 .hero-emblem img{width:76px;height:76px;object-fit:contain;padding:8px;border:1px solid #d4bb8877;border-radius:24px;background:#ffffff10;box-shadow:0 0 0 7px #ffffff08}
 .hero-emblem span{font-size:8px;color:#e3d5b8;white-space:nowrap}
@@ -320,6 +320,7 @@ body[data-theme="dark"] .home-note{background:#c4a36a16}
       <h1>مساعد مستشفى<br>الحيدرية العام</h1>
       <p>أهلاً بيك في المساعد الذكي لمستشفى الحيدرية العام. تحتاج تعرف أي خدمة داخل المستشفى أو عندك سؤال أو استفسار؟ اكتب سؤالك، وأنا هنا حتى أساعدك وأوفر إلك المعلومة بسهولة.</p>
       <button class="hero-cta" data-q="السلام عليكم، عرفني بخدمات مساعد مستشفى الحيدرية">ابدأ المحادثة <span>←</span></button>
+      <button class="install-cta" id="installApp" type="button" hidden>＋ ثبّت التطبيق</button>
     </div>
     <div class="hero-emblem"><img src="./hospital-logo.jpg" alt="شعار مستشفى الحيدرية"><span>رعاية · معرفة · خدمة</span></div>
     <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
@@ -382,6 +383,54 @@ async function recordVisit() {
   } catch (e) { console.warn("Visit analytics unavailable", e); }
 }
 recordVisit();
+recordVisit();
+
+// Track a confirmed PWA installation (or first launch in standalone mode).
+let deferredInstallPrompt = null;
+const installButton = document.querySelector("#installApp");
+async function recordAppInstall(source) {
+  const key = "alh_app_install_recorded";
+  if (localStorage.getItem(key)) return;
+  try {
+    const { error } = await db.functions.invoke("app-install", {
+      body: { visitor_id: visitorId, source }
+    });
+    if (!error) localStorage.setItem(key, "1");
+  } catch (e) {
+    console.warn("App install analytics unavailable", e);
+  }
+}
+window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  if (installButton) installButton.hidden = false;
+});
+if (installButton) {
+  installButton.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) {
+      alert("للتثبيت: افتح قائمة المتصفح ثم اختر «إضافة إلى الشاشة الرئيسية» أو «تثبيت التطبيق».");
+      return;
+    }
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    if (choice?.outcome === "accepted") {
+      // appinstalled is the authoritative confirmation; this is a fallback.
+      await recordAppInstall(/Android/i.test(navigator.userAgent) ? "android" : "browser");
+    }
+    deferredInstallPrompt = null;
+    installButton.hidden = true;
+  });
+}
+window.addEventListener("appinstalled", () => {
+  recordAppInstall(/Android/i.test(navigator.userAgent) ? "android" : "browser");
+  if (installButton) installButton.hidden = true;
+});
+const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+if (isStandalone) {
+  const source = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? "ios" : "android";
+  recordAppInstall(source);
+}
+
 
 
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
