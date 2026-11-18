@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102f46">
+<title>إدارة تقييمات المساعد الذكي | مستشفى الحيدرية العام</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--navy:#102f46;--blue:#286985;--gold:#c4a36a;--ink:#183448;--muted:#71838d;--line:#e4e9e8;--paper:#fffefa;--bg:#f1f3f1}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Tahoma,Arial,sans-serif}
+header{background:linear-gradient(110deg,#0d2b40,#1b506d);color:#fff;padding:20px max(18px,calc((100% - 1100px)/2));border-bottom:2px solid var(--gold)}
+header b{font-size:17px}header small{display:block;color:#d9e2e5;margin-top:7px;font-size:12px}
+main{max-width:1100px;margin:28px auto;padding:0 16px}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 10px 30px #102f460b}
+.login{max-width:430px;margin:8vh auto}.login h1,.heading h1{font-size:21px;margin:0 0 8px}.muted{color:var(--muted);font-size:12px;line-height:1.9}
+label{display:block;font-size:12px;font-weight:bold;margin:17px 0 7px}
+input{width:100%;padding:13px;border:1px solid var(--line);border-radius:11px;font:inherit;background:#fff}
+button{border:0;border-radius:11px;padding:11px 17px;background:var(--navy);color:white;font:inherit;font-size:12px;font-weight:bold;cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}.secondary{background:#eef2f1;color:var(--ink);border:1px solid var(--line)}
+.actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.message{font-size:12px;margin-top:13px;color:#a33;min-height:20px}
+.heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:15px;padding:17px}
+.stat small{display:block;color:var(--muted);font-size:11px}.stat strong{display:block;font-size:27px;margin-top:8px;color:var(--navy);font-variant-numeric:tabular-nums}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;min-width:680px;background:var(--paper)}
+th,td{text-align:right;padding:13px 14px;border-bottom:1px solid var(--line);font-size:12px;vertical-align:top}
+th{background:#f5f6f2;color:#526875;font-size:11px}
+.pill{display:inline-block;border-radius:30px;padding:5px 10px;font-weight:bold;font-size:11px}
+.good{background:#e5f4eb;color:#267044}.bad{background:#fbe9e7;color:#a43c32}
+.empty{text-align:center;color:var(--muted);padding:28px}
+footer{font-size:10px;color:var(--muted);text-align:center;margin:18px 0}
+@media(max-width:700px){main{margin:18px auto}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stat strong{font-size:23px}.panel{padding:17px}}
+</style>
+</head>
+<body>
+<header><b>مستشفى الحيدرية العام</b><small>لوحة إدارة تقييمات إجابات المساعد الذكي</small></header>
+<main>
+<section id="login" class="panel login">
+<h1>دخول الإدارة</h1>
+<p class="muted">هذه الصفحة مخصصة لحسابات إدارة المستشفى المخوّلة فقط.</p>
+<form id="loginForm">
+<label for="email">البريد الإلكتروني</label><input id="email" type="email" autocomplete="username" required>
+<label for="password">كلمة المرور</label><input id="password" type="password" autocomplete="current-password" required>
+<div style="margin-top:18px"><button id="loginBtn" type="submit">تسجيل الدخول</button></div>
+<div id="loginMessage" class="message" role="status"></div>
+</form>
+</section>
+<section id="dashboard" hidden>
+<div class="heading">
+<div><h1>ملخص تقييمات المساعد</h1><div class="muted">إحصائيات التقييمات المسجلة من زوار الموقع</div></div>
+<div class="actions"><button class="secondary" id="refreshBtn" type="button">تحديث البيانات</button><button id="logoutBtn" type="button">تسجيل الخروج</button></div>
+</div>
+<div class="stats">
+<div class="stat"><small>إجمالي التقييمات</small><strong id="total">—</strong></div>
+<div class="stat"><small>إجابات مفيدة 👍</small><strong id="positive">—</strong></div>
+<div class="stat"><small>إجابات غير مفيدة 👎</small><strong id="negative">—</strong></div>
+<div class="stat"><small>نسبة التقييم الإيجابي</small><strong id="rate">—</strong></div>
+</div>
+<div class="panel">
+<div class="heading"><div><h1 style="font-size:17px">أحدث التقييمات</h1><div class="muted">آخر 100 تقييم مسجل</div></div></div>
+<div class="table-wrap"><table><thead><tr><th>التقييم</th><th>الموضوع</th><th>سؤال المستخدم</th><th>تاريخ التقييم</th></tr></thead><tbody id="rows"><tr><td colspan="4" class="empty">جارٍ تحميل البيانات…</td></tr></tbody></table></div>
+<div id="dataMessage" class="message" role="status"></div>
+</div>
+</section>
+<footer>وحدة الإعلام · مستشفى الحيدرية العام</footer>
+</main>
+<script>
+const SUPABASE_URL="https://dwffkopuisuyqpgedowp.supabase.co";
+const SUPABASE_KEY="sb_publishable_2wT5I3b3mY1IPzbFN5NllQ_J";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+const safe=(value)=>String(value??"—").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function showError(target,message){$(target).textContent=message}
+async function verifyAdmin(){
+ const {data:{session}}=await db.auth.getSession();
+ if(!session){$("login").hidden=false;$("dashboard").hidden=true;return false}
+ const {data,error}=await db.from("hospital_admins").select("role").eq("user_id",session.user.id).eq("role","admin").maybeSingle();
+ if(error||!data){await db.auth.signOut();$("login").hidden=false;$("dashboard").hidden=true;showError("loginMessage","هذا الحساب غير مخوّل للوصول إلى لوحة الإدارة.");return false}
+ $("login").hidden=true;$("dashboard").hidden=false;await loadRatings();return true;
+}
+async function loadRatings(){
+ $("refreshBtn").disabled=true;showError("dataMessage","جارٍ تحديث البيانات…");
+ try{
+  const [all,pos,neg,recent]=await Promise.all([
+   db.from("hospital_ai_answer_ratings").select("id",{count:"exact",head:true}),
+   db.from("hospital_ai_answer_ratings").select("id",{count:"exact",head:true}).eq("rating",1),
+   db.from("hospital_ai_answer_ratings").select("id",{count:"exact",head:true}).eq("rating",-1),
+   db.from("hospital_ai_answer_ratings").select("id,rating,created_at,conversation:hospital_ai_conversation_logs(topic,user_message)").order("created_at",{ascending:false}).limit(100)
+  ]);
+  for(const result of [all,pos,neg,recent])if(result.error)throw result.error;
+  const total=all.count||0,positive=pos.count||0,negative=neg.count||0;
+  $("total").textContent=total.toLocaleString("ar-IQ");
+  $("positive").textContent=positive.toLocaleString("ar-IQ");
+  $("negative").textContent=negative.toLocaleString("ar-IQ");
+  $("rate").textContent=(total?Math.round(positive/total*100):0).toLocaleString("ar-IQ")+"٪";
+  const tbody=$("rows");tbody.replaceChildren();
+  if(!recent.data?.length){tbody.innerHTML='<tr><td colspan="4" class="empty">لا توجد تقييمات حتى الآن.</td></tr>'}
+  else for(const item of recent.data){
+   const tr=document.createElement("tr");
+   const topic=item.conversation?.topic||"عام";
+   const question=item.conversation?.user_message||"غير متوفر";
+   const date=new Date(item.created_at).toLocaleString("ar-IQ",{dateStyle:"medium",timeStyle:"short"});
+   tr.innerHTML='<td><span class="pill '+(item.rating===1?"good":"bad")+'">'+(item.rating===1?"مفيد 👍":"غير مفيد 👎")+'</span></td><td>'+safe(topic)+'</td><td>'+safe(question.length>180?question.slice(0,180)+"…":question)+'</td><td>'+safe(date)+'</td>';
+   tbody.append(tr);
+  }
+  showError("dataMessage","تم تحديث البيانات بنجاح.");
+ }catch(error){console.error("Ratings dashboard error",error);showError("dataMessage","تعذر تحميل التقييمات. تأكد من صلاحيات حساب الإدارة ثم حاول مجدداً.");}
+ finally{$("refreshBtn").disabled=false}
+}
+$("loginForm").addEventListener("submit",async e=>{
+ e.preventDefault();$("loginBtn").disabled=true;showError("loginMessage","جارٍ التحقق من الحساب…");
+ const {error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+ if(error){showError("loginMessage","تعذر تسجيل الدخول. تحقق من البريد الإلكتروني وكلمة المرور.");$("loginBtn").disabled=false;return}
+ await verifyAdmin();$("loginBtn").disabled=false;
+});
+$("refreshBtn").addEventListener("click",loadRatings);
+$("logoutBtn").addEventListener("click",async()=>{await db.auth.signOut();$("dashboard").hidden=true;$("login").hidden=false;});
+verifyAdmin();
+</script>
+</body>
+</html>
