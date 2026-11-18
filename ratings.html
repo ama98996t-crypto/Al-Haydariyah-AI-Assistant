@@ -47,22 +47,25 @@ footer{font-size:10px;color:var(--muted);text-align:center;margin:18px 0}
 <div style="margin-top:18px"><button id="loginBtn" type="submit">تسجيل الدخول</button></div>
 <div id="loginMessage" class="message" role="status"></div>
 </form>
+<button class="secondary" id="forgotPasswordBtn" type="button" style="margin-top:12px;width:100%">نسيت كلمة المرور؟</button>
+<div id="resetRequestMessage" class="message" role="status"></div>
+</section>
+<section id="recoveryPanel" class="panel login" hidden>
+<h1>تعيين كلمة مرور جديدة</h1>
+<p class="muted">أدخل كلمة المرور الجديدة لحساب إدارة المستشفى.</p>
+<form id="recoveryForm">
+<label for="recoveryPassword">كلمة المرور الجديدة</label><input id="recoveryPassword" type="password" autocomplete="new-password" minlength="8" required>
+<label for="recoveryConfirm">تأكيد كلمة المرور</label><input id="recoveryConfirm" type="password" autocomplete="new-password" minlength="8" required>
+<div style="margin-top:18px"><button id="recoverySaveBtn" type="submit">حفظ كلمة المرور</button></div>
+<div id="recoveryMessage" class="message" role="status"></div>
+</form>
 </section>
 <section id="dashboard" hidden>
 <div class="heading">
 <div><h1>ملخص تقييمات المساعد</h1><div class="muted">إحصائيات التقييمات المسجلة من زوار الموقع</div></div>
-<div class="actions"><button class="secondary" id="changePasswordBtn" type="button">تغيير كلمة المرور</button><button class="secondary" id="refreshBtn" type="button">تحديث البيانات</button><button id="logoutBtn" type="button">تسجيل الخروج</button></div>
+<div class="actions"><button class="secondary" id="refreshBtn" type="button">تحديث البيانات</button><button id="logoutBtn" type="button">تسجيل الخروج</button></div>
 </div>
-<section id="passwordPanel" class="panel" hidden style="margin-bottom:18px">
-<h2 style="font-size:17px;margin:0 0 8px">تغيير كلمة مرور الإدارة</h2>
-<p class="muted">أدخل كلمة مرور جديدة للحساب الحالي. لن تحتاج إلى رابط البريد الإلكتروني.</p>
-<form id="passwordForm">
-<label for="newPassword">كلمة المرور الجديدة</label><input id="newPassword" type="password" autocomplete="new-password" minlength="8" required>
-<label for="confirmPassword">تأكيد كلمة المرور</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
-<div class="actions" style="margin-top:16px"><button id="savePasswordBtn" type="submit">حفظ كلمة المرور</button><button class="secondary" id="cancelPasswordBtn" type="button">إلغاء</button></div>
-<div id="passwordMessage" class="message" role="status"></div>
-</form>
-</section>
+
 <div class="stats">
 <div class="stat"><small>إجمالي التقييمات</small><strong id="total">—</strong></div>
 <div class="stat"><small>إجابات مفيدة 👍</small><strong id="positive">—</strong></div>
@@ -124,22 +127,35 @@ $("loginForm").addEventListener("submit",async e=>{
  e.preventDefault();$("loginBtn").disabled=true;showError("loginMessage","جارٍ التحقق من الحساب…");
  const {error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
  if(error){showError("loginMessage","تعذر تسجيل الدخول. تحقق من البريد الإلكتروني وكلمة المرور.");$("loginBtn").disabled=false;return}
- await verifyAdmin();$("loginBtn").disabled=false;
+ await const recoveryRedirectUrl="https://ama98996t-crypto.github.io/Al-Haydariyah-AI-Assistant/ratings.html";
+$("forgotPasswordBtn").addEventListener("click",async()=>{
+ const email=$("email").value.trim();
+ if(!email){showError("resetRequestMessage","اكتب بريدك الإلكتروني أولاً.");$("email").focus();return;}
+ $("forgotPasswordBtn").disabled=true;showError("resetRequestMessage","جارٍ إرسال رابط الاستعادة إلى بريدك…");
+ const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:recoveryRedirectUrl});
+ if(error){console.error("Password reset request error",error);showError("resetRequestMessage","تعذر إرسال الرابط. تحقق من إعدادات روابط إعادة التوجيه في Supabase.");}
+ else showError("resetRequestMessage","إذا كان البريد مسجلاً، سيصلك رابط لتعيين كلمة مرور جديدة. افحص الوارد والرسائل غير المرغوب بها.");
+ $("forgotPasswordBtn").disabled=false;
+});
+db.auth.onAuthStateChange((event)=>{
+ if(event==="PASSWORD_RECOVERY"){
+  $("login").hidden=true;$("dashboard").hidden=true;$("recoveryPanel").hidden=false;
+ }
+});
+$("recoveryForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const password=$("recoveryPassword").value;
+ if(password.length<8){showError("recoveryMessage","كلمة المرور يجب أن تكون 8 أحرف على الأقل.");return;}
+ if(password!==$("recoveryConfirm").value){showError("recoveryMessage","كلمتا المرور غير متطابقتين.");return;}
+ $("recoverySaveBtn").disabled=true;showError("recoveryMessage","جارٍ حفظ كلمة المرور الجديدة…");
+ const {error}=await db.auth.updateUser({password});
+ if(error){console.error("Recovery password update error",error);showError("recoveryMessage","تعذر تغيير كلمة المرور. أعد طلب رابط جديد وحاول مرة أخرى.");}
+ else{showError("recoveryMessage","تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.");await db.auth.signOut();$("recoveryForm").reset();$("recoveryPanel").hidden=true;$("login").hidden=false;}
+ $("recoverySaveBtn").disabled=false;
+});
+if(window.location.hash.includes("type=recovery")){$("login").hidden=true;$("recoveryPanel").hidden=false;}else{verifyAdmin();}$("loginBtn").disabled=false;
 });
 $("refreshBtn").addEventListener("click",loadRatings);
-$("changePasswordBtn").addEventListener("click",()=>{$("passwordPanel").hidden=!$("passwordPanel").hidden;$("passwordMessage").textContent="";});
-$("cancelPasswordBtn").addEventListener("click",()=>{$("passwordPanel").hidden=true;$("passwordForm").reset();$("passwordMessage").textContent="";});
-$("passwordForm").addEventListener("submit",async e=>{
- e.preventDefault();
- const password=$("newPassword").value;
- if(password.length<8){showError("passwordMessage","كلمة المرور يجب أن تكون 8 أحرف على الأقل.");return;}
- if(password!==$("confirmPassword").value){showError("passwordMessage","كلمتا المرور غير متطابقتين.");return;}
- $("savePasswordBtn").disabled=true;showError("passwordMessage","جارٍ تحديث كلمة المرور…");
- const {data,error}=await db.auth.updateUser({password});
- if(error){console.error("Password update error",error);showError("passwordMessage","تعذر تغيير كلمة المرور. حاول مرة أخرى.");}
- else{$("passwordForm").reset();showError("passwordMessage","تم تغيير كلمة المرور بنجاح.");}
- $("savePasswordBtn").disabled=false;
-});
 $("logoutBtn").addEventListener("click",async()=>{await db.auth.signOut();$("dashboard").hidden=true;$("login").hidden=false;});
 verifyAdmin();
 </script>
