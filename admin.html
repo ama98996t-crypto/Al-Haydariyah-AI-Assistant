@@ -35,7 +35,8 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:right;
 <div class="panel"><h1>لوحة المتابعة</h1><p class="muted">إحصائيات استخدام مساعد مستشفى الحيدرية. لا يتم عرض نصوص المحادثات أو بيانات تعريف الزوار.</p>
 <div class="grid"><div class="metric">الزيارات<b id="visits">—</b></div><div class="metric">المحادثات<b id="chats">—</b></div><div class="metric">زوار مميزون<b id="unique">—</b></div><div class="metric">إعلانات منشورة<b id="newsCount">—</b></div></div>
 <div class="row no-print" style="margin-top:14px"><button onclick="loadStats()">تحديث الإحصائيات</button><button class="secondary" onclick="window.print()">طباعة / حفظ PDF</button></div></div>
-<div class="tabs no-print"><button class="active" data-tab="news">الأخبار والإعلانات</button><button data-tab="complaints">الشكاوى والمقترحات</button><button data-tab="knowledge">تعليمات الموظفين</button><button data-tab="departments">الأقسام</button><button data-tab="doctors">الأطباء</button><button data-tab="staffPositions">المناصب والأسماء الإضافية</button><button data-tab="services">الخدمات</button><button data-tab="documents">المستندات</button></div>
+<div class="tabs no-print"><button data-tab="ratings">تقييمات الإجابات</button><button class="active" data-tab="news">الأخبار والإعلانات</button><button data-tab="complaints">الشكاوى والمقترحات</button><button data-tab="knowledge">تعليمات الموظفين</button><button data-tab="departments">الأقسام</button><button data-tab="doctors">الأطباء</button><button data-tab="staffPositions">المناصب والأسماء الإضافية</button><button data-tab="services">الخدمات</button><button data-tab="documents">المستندات</button></div>
+<section id="ratings" class="panel tab hidden"><h2>تقييم إجابات المساعد</h2><p class="muted">تظهر هنا التقييمات المرسلة من مستخدمي المساعد. لا تظهر هذه البيانات للعامة.</p><div class="grid"><div class="metric">إجمالي التقييمات<b id="ratingTotal">—</b></div><div class="metric">إجابات مفيدة<b id="ratingPositive">—</b></div><div class="metric">تحتاج مراجعة<b id="ratingNegative">—</b></div><div class="metric">نسبة الرضا<b id="ratingRate">—</b></div></div><div class="row no-print" style="margin-top:14px"><button id="refreshRatings" class="secondary">تحديث التقييمات</button></div><div id="ratingList" class="muted" style="margin-top:14px">جارٍ تحميل التقييمات...</div></section>
 <section id="news" class="panel tab"><h2>إضافة إعلان أو خبر</h2><input id="newsTitle" placeholder="عنوان الخبر"><select id="newsCategory"><option value="news">خبر</option><option value="announcement">إعلان</option><option value="alert">تنبيه</option><option value="event">فعالية</option></select><textarea id="newsBody" placeholder="نص الخبر أو الإعلان"></textarea><div class="row"><button id="saveNews">حفظ ونشر</button><button class="secondary" id="saveDraft">حفظ كمسودة</button></div><div id="newsList"></div></section>
 <section id="complaints" class="panel tab hidden"><h2>إدارة الشكاوى والمقترحات</h2><p class="muted">بيانات المشتكين لا تظهر إلا للمستخدمين المخولين. الردود تظهر لصاحب الطلب في صفحة المتابعة الخاصة.</p><button class="secondary" id="refreshComplaints">تحديث القائمة</button><div id="complaintList" class="muted">جارٍ تحميل الطلبات...</div></section>
 <section id="knowledge" class="panel tab hidden"><h2>قاعدة تعليمات الموظفين</h2><p class="muted">تضاف فقط التعليمات المعتمدة رسمياً، ولا تظهر للمراجعين.</p><input id="kTitle" placeholder="عنوان التعليمات"><input id="kDept" placeholder="القسم المعني (اختياري)"><textarea id="kContent" placeholder="نص التعليمات المعتمدة"></textarea><button id="saveKnowledge">حفظ التعليمات</button><div id="knowledgeList"></div></section>
@@ -60,7 +61,7 @@ async function ensureRole(user){
 async function enter(user){
  await ensureRole(user);currentUser=user;
  $("login").classList.add("hidden");$("dashboard").classList.remove("hidden");$("logout").classList.remove("hidden");
- await Promise.all([loadStats(),loadNews(),loadComplaints(),loadKnowledge(),loadDepartments(),loadDoctors(),loadServices(),loadStaffPositions()]);
+ await Promise.all([loadStats(),loadNews(),loadComplaints(),loadKnowledge(),loadDepartments(),loadDoctors(),loadServices(),loadStaffPositions(),loadRatings()]);
 }
 $("loginBtn").onclick=async()=>{
  msg("loginMsg","جارٍ التحقق...");
@@ -74,7 +75,19 @@ document.querySelectorAll("[data-tab]").forEach(btn=>btn.onclick=()=>{
  document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===btn));
  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("hidden",x.id!==btn.dataset.tab));
  if(btn.dataset.tab==="complaints")loadComplaints();
+ if(btn.dataset.tab==="ratings")loadRatings();
 });
+async function loadRatings(){
+ const host=$("ratingList");
+ host.textContent="جارٍ تحميل التقييمات...";
+ const {data,error}=await db.from("hospital_ai_answer_ratings").select("id,conversation_id,rating,feedback,created_at").order("created_at",{ascending:false}).limit(200);
+ if(error){host.textContent="تعذر تحميل التقييمات: "+error.message;return;}
+ const rows=data||[],positive=rows.filter(x=>x.rating===1).length,negative=rows.filter(x=>x.rating===-1).length,total=rows.length;
+ $("ratingTotal").textContent=total;$("ratingPositive").textContent=positive;$("ratingNegative").textContent=negative;
+ $("ratingRate").textContent=total?Math.round(positive/total*100)+"%":"—";
+ host.innerHTML=rows.length?rows.map(x=>'<article class="item" style="border:1px solid var(--line);border-radius:12px;padding:12px;margin:9px 0"><b>'+(x.rating===1?'👍 إجابة مفيدة':'👎 إجابة تحتاج مراجعة')+'</b><div class="muted">رقم المحادثة: '+esc(x.conversation_id)+' · '+new Date(x.created_at).toLocaleString("ar-IQ")+'</div>'+(x.feedback?'<p>'+esc(x.feedback)+'</p>':'')+'</article>').join(""):'<p class="muted">لا توجد تقييمات حتى الآن.</p>';
+}
+$("refreshRatings").onclick=loadRatings;
 async function loadStats(){
  const {data,error}=await db.from("hospital_ai_analytics_events").select("visitor_hash,event_type,topic,created_at").limit(10000);
  if(error){$("visits").textContent="غير متاح";$("chats").textContent="غير متاح";return;}
