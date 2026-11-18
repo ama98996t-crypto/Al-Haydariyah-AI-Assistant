@@ -127,7 +127,7 @@ $("loginForm").addEventListener("submit",async e=>{
  e.preventDefault();$("loginBtn").disabled=true;showError("loginMessage","جارٍ التحقق من الحساب…");
  const {error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
  if(error){showError("loginMessage","تعذر تسجيل الدخول. تحقق من البريد الإلكتروني وكلمة المرور.");$("loginBtn").disabled=false;return}
- await const recoveryRedirectUrl="https://ama98996t-crypto.github.io/Al-Haydariyah-AI-Assistant/ratings.html";
+ await const recoveryRedirectUrl="https://ama98996t-crypto.github.io/Al-Haydariyah-AI-Assistant/reset-password.html";
 $("forgotPasswordBtn").addEventListener("click",async()=>{
  const email=$("email").value.trim();
  if(!email){showError("resetRequestMessage","اكتب بريدك الإلكتروني أولاً.");$("email").focus();return;}
