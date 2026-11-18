@@ -80,7 +80,19 @@ footer{font-size:10px;color:var(--muted);text-align:center;margin:18px 0}
 </section>
 <footer>وحدة الإعلام · مستشفى الحيدرية العام</footer>
 </main>
-<script>
+<script>(async()=>{
+ try{
+  if(!window.supabase?.createClient){
+   await new Promise((resolve,reject)=>{
+    const fallback=document.createElement("script");
+    fallback.src="https://unpkg.com/@supabase/supabase-js@2";
+    fallback.onload=resolve;
+    fallback.onerror=()=>reject(new Error("تعذر تحميل مكتبة الاتصال. تحقق من الإنترنت ثم أعد فتح الصفحة."));
+    document.head.appendChild(fallback);
+   });
+  }
+  if(!window.supabase?.createClient)throw new Error("مكتبة الاتصال غير متاحة.");
+
 const SUPABASE_URL="https://dwffkopuisuyqpgedowp.supabase.co";
 const SUPABASE_KEY="sb_publishable_2wT5I3b3mY1IPzbFN5NllQ_J";
 const recoveryRedirectUrl="https://ama98996t-crypto.github.io/Al-Haydariyah-AI-Assistant/reset-password.html";
@@ -167,6 +179,14 @@ $("logoutBtn").addEventListener("click",async()=>{await db.auth.signOut();$("das
  if(hash.get("type")==="recovery"){
   $("login").hidden=true;$("recoveryPanel").hidden=false;
  }else await verifyAdmin();
+})();
+ }catch(error){
+  console.error("Dashboard initialization error",error);
+  const message=document.getElementById("loginMessage");
+  if(message)message.textContent=error.message||"تعذر تشغيل الصفحة. حدّثها وحاول مجدداً.";
+  const button=document.getElementById("forgotPasswordBtn");
+  if(button)button.disabled=true;
+ }
 })();
 </script>>
 </body>
