@@ -293,6 +293,13 @@ body[data-theme="dark"] .home-note{background:#c4a36a16}
 @media(prefers-reduced-motion:reduce){
  *,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
+
+.answer-rating{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:9px 4px 0;color:var(--muted);font-size:10px}
+.answer-rating button{border:1px solid var(--line);background:var(--paper);border-radius:9px;padding:5px 9px;cursor:pointer}
+.answer-rating button:hover{border-color:var(--gold)}
+.answer-rating button:disabled{opacity:.5;cursor:default}
+.answer-rating small{font-size:9px}
+.answer-rating.rated button{display:none}
 </style>
 </head>
 <body>
@@ -492,6 +499,14 @@ if(role==="assistant"){
 }
 
 body.append(sender,bubble);
+if(role==="assistant" && Number.isSafeInteger(window.__lastAnswerConversationId)){
+  const rating=document.createElement("div");
+  rating.className="answer-rating";
+  rating.innerHTML='<span>هل كانت الإجابة مفيدة؟</span><button type="button" data-rating="1" aria-label="إجابة مفيدة">👍</button><button type="button" data-rating="-1" aria-label="إجابة غير مفيدة">👎</button><small aria-live="polite"></small>';
+  const conversationId=window.__lastAnswerConversationId;
+  rating.querySelectorAll("button").forEach(button=>button.addEventListener("click",()=>submitAnswerRating(conversationId,Number(button.dataset.rating),rating)));
+  body.append(rating);
+}
 row.append(av,body);
 $("#chat").append(row);
 $("#chat").scrollTop=$("#chat").scrollHeight;
@@ -544,7 +559,23 @@ history:history.slice(-11,-1),
 if(error)throw error;
 const a=answerOf(data);
 if(!a)throw Error("Empty AI response");
-return a;
+return {answer:a,conversationId:Number.isSafeInteger(Number(data?.conversation_id))?Number(data.conversation_id):null};
+}
+
+async function submitAnswerRating(conversationId,rating,host){
+ const buttons=[...host.querySelectorAll("button")],status=host.querySelector("small");
+ buttons.forEach(b=>b.disabled=true);
+ status.textContent="جارٍ إرسال التقييم...";
+ try{
+  const {error}=await db.from("hospital_ai_answer_ratings").insert({conversation_id:conversationId,rating});
+  if(error)throw error;
+  status.textContent="شكراً، تم تسجيل تقييمك.";
+  host.classList.add("rated");
+ }catch(error){
+  buttons.forEach(b=>b.disabled=false);
+  status.textContent=error.code==="23505"?"سبق تقييم هذه الإجابة.":"تعذر إرسال التقييم، حاول لاحقاً.";
+  console.warn("Answer rating failed",error);
+ }
 }
 
 async function send(q){
@@ -560,11 +591,13 @@ async function send(q){
    $("#prompt").style.height="auto";
    const waitLabel=waitRow?.querySelector(".sender");
    if(waitLabel) waitLabel.textContent="مساعد مستشفى الحيدرية يكتب...";
-   const a=await ask(q);
+   const result=await ask(q);
    $("#typing")?.remove();
-   add(a,"assistant");
+   window.__lastAnswerConversationId=result.conversationId;
+   add(result.answer,"assistant");
+   window.__lastAnswerConversationId=null;
 
-   history.push({role:"model",text:a});
+   history.push({role:"model",text:result.answer});
    history=history.slice(-12);
  } catch(e) {
    console.error("Hospital assistant send failed:",e);
