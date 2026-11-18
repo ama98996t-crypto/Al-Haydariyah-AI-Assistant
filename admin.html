@@ -80,9 +80,14 @@ document.querySelectorAll("[data-tab]").forEach(btn=>btn.onclick=()=>{
 async function loadRatings(){
  const host=$("ratingList");
  host.textContent="جارٍ تحميل التقييمات...";
- const {data,error}=await db.from("hospital_ai_answer_ratings").select("id,conversation_id,rating,feedback,created_at").order("created_at",{ascending:false}).limit(200);
- if(error){host.textContent="تعذر تحميل التقييمات: "+error.message;return;}
- const rows=data||[],positive=rows.filter(x=>x.rating===1).length,negative=rows.filter(x=>x.rating===-1).length,total=rows.length;
+ const [list,totalQ,positiveQ,negativeQ]=await Promise.all([
+  db.from("hospital_ai_answer_ratings").select("id,conversation_id,rating,feedback,created_at").order("created_at",{ascending:false}).limit(100),
+  db.from("hospital_ai_answer_ratings").select("id",{count:"exact",head:true}),
+  db.from("hospital_ai_answer_ratings").select("id",{count:"exact",head:true}).eq("rating",1),
+  db.from("hospital_ai_answer_ratings").select("id",{count:"exact",head:true}).eq("rating",-1)
+ ]);
+ if(list.error||totalQ.error||positiveQ.error||negativeQ.error){host.textContent="تعذر تحميل التقييمات: "+(list.error||totalQ.error||positiveQ.error||negativeQ.error).message;return;}
+ const rows=list.data||[],total=totalQ.count||0,positive=positiveQ.count||0,negative=negativeQ.count||0;
  $("ratingTotal").textContent=total;$("ratingPositive").textContent=positive;$("ratingNegative").textContent=negative;
  $("ratingRate").textContent=total?Math.round(positive/total*100)+"%":"—";
  host.innerHTML=rows.length?rows.map(x=>'<article class="item" style="border:1px solid var(--line);border-radius:12px;padding:12px;margin:9px 0"><b>'+(x.rating===1?'👍 إجابة مفيدة':'👎 إجابة تحتاج مراجعة')+'</b><div class="muted">رقم المحادثة: '+esc(x.conversation_id)+' · '+new Date(x.created_at).toLocaleString("ar-IQ")+'</div>'+(x.feedback?'<p>'+esc(x.feedback)+'</p>':'')+'</article>').join(""):'<p class="muted">لا توجد تقييمات حتى الآن.</p>';
