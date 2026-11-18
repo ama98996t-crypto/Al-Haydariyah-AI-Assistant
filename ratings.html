@@ -51,8 +51,18 @@ footer{font-size:10px;color:var(--muted);text-align:center;margin:18px 0}
 <section id="dashboard" hidden>
 <div class="heading">
 <div><h1>ملخص تقييمات المساعد</h1><div class="muted">إحصائيات التقييمات المسجلة من زوار الموقع</div></div>
-<div class="actions"><button class="secondary" id="refreshBtn" type="button">تحديث البيانات</button><button id="logoutBtn" type="button">تسجيل الخروج</button></div>
+<div class="actions"><button class="secondary" id="changePasswordBtn" type="button">تغيير كلمة المرور</button><button class="secondary" id="refreshBtn" type="button">تحديث البيانات</button><button id="logoutBtn" type="button">تسجيل الخروج</button></div>
 </div>
+<section id="passwordPanel" class="panel" hidden style="margin-bottom:18px">
+<h2 style="font-size:17px;margin:0 0 8px">تغيير كلمة مرور الإدارة</h2>
+<p class="muted">أدخل كلمة مرور جديدة للحساب الحالي. لن تحتاج إلى رابط البريد الإلكتروني.</p>
+<form id="passwordForm">
+<label for="newPassword">كلمة المرور الجديدة</label><input id="newPassword" type="password" autocomplete="new-password" minlength="8" required>
+<label for="confirmPassword">تأكيد كلمة المرور</label><input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+<div class="actions" style="margin-top:16px"><button id="savePasswordBtn" type="submit">حفظ كلمة المرور</button><button class="secondary" id="cancelPasswordBtn" type="button">إلغاء</button></div>
+<div id="passwordMessage" class="message" role="status"></div>
+</form>
+</section>
 <div class="stats">
 <div class="stat"><small>إجمالي التقييمات</small><strong id="total">—</strong></div>
 <div class="stat"><small>إجابات مفيدة 👍</small><strong id="positive">—</strong></div>
@@ -117,6 +127,19 @@ $("loginForm").addEventListener("submit",async e=>{
  await verifyAdmin();$("loginBtn").disabled=false;
 });
 $("refreshBtn").addEventListener("click",loadRatings);
+$("changePasswordBtn").addEventListener("click",()=>{$("passwordPanel").hidden=!$("passwordPanel").hidden;$("passwordMessage").textContent="";});
+$("cancelPasswordBtn").addEventListener("click",()=>{$("passwordPanel").hidden=true;$("passwordForm").reset();$("passwordMessage").textContent="";});
+$("passwordForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const password=$("newPassword").value;
+ if(password.length<8){showError("passwordMessage","كلمة المرور يجب أن تكون 8 أحرف على الأقل.");return;}
+ if(password!==$("confirmPassword").value){showError("passwordMessage","كلمتا المرور غير متطابقتين.");return;}
+ $("savePasswordBtn").disabled=true;showError("passwordMessage","جارٍ تحديث كلمة المرور…");
+ const {data,error}=await db.auth.updateUser({password});
+ if(error){console.error("Password update error",error);showError("passwordMessage","تعذر تغيير كلمة المرور. حاول مرة أخرى.");}
+ else{$("passwordForm").reset();showError("passwordMessage","تم تغيير كلمة المرور بنجاح.");}
+ $("savePasswordBtn").disabled=false;
+});
 $("logoutBtn").addEventListener("click",async()=>{await db.auth.signOut();$("dashboard").hidden=true;$("login").hidden=false;});
 verifyAdmin();
 </script>
