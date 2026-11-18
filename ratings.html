@@ -89,7 +89,7 @@ async function requestPasswordReset(){
  button.disabled=true;message.style.color="#183448";message.textContent="جارٍ إرسال طلب الاستعادة…";
  try{
   const response=await fetch("https://dwffkopuisuyqpgedowp.supabase.co/auth/v1/recover?redirect_to="+encodeURIComponent("https://ama98996t-crypto.github.io/Al-Haydariyah-AI-Assistant/reset-password.html"),{
-   method:"POST",headers:{"Content-Type":"application/json","apikey":"sb_publishable_2wT5I3b3mY1IPzbFN5NllQ_J"},body:JSON.stringify({email})
+   method:"POST",headers:{"Content-Type":"application/json","apikey":"sb_publishable_2wT5I3b3mY1IPzbFN5NllQ_Ja136LJn"},body:JSON.stringify({email})
   });
   if(!response.ok){let detail="HTTP "+response.status;try{const data=await response.json();detail=data.msg||data.message||data.error_description||detail;}catch(_){}throw new Error(detail);}
   message.style.color="#267044";message.textContent="تم إرسال طلب الاستعادة. افحص البريد الوارد ومجلد الرسائل غير المرغوب بها.";
@@ -112,7 +112,7 @@ async function requestPasswordReset(){
   if(!window.supabase?.createClient)throw new Error("مكتبة الاتصال غير متاحة.");
 
 const SUPABASE_URL="https://dwffkopuisuyqpgedowp.supabase.co";
-const SUPABASE_KEY="sb_publishable_2wT5I3b3mY1IPzbFN5NllQ_J";
+const SUPABASE_KEY="sb_publishable_2wT5I3b3mY1IPzbFN5NllQ_Ja136LJn";
 const recoveryRedirectUrl="https://ama98996t-crypto.github.io/Al-Haydariyah-AI-Assistant/reset-password.html";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
