@@ -83,15 +83,16 @@ footer{font-size:10px;color:var(--muted);text-align:center;margin:18px 0}
 <script>
 const SUPABASE_URL="https://dwffkopuisuyqpgedowp.supabase.co";
 const SUPABASE_KEY="sb_publishable_2wT5I3b3mY1IPzbFN5NllQ_J";
+const recoveryRedirectUrl="https://ama98996t-crypto.github.io/Al-Haydariyah-AI-Assistant/reset-password.html";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
-const safe=(value)=>String(value??"—").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safe=value=>String(value??"—").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function showError(target,message){$(target).textContent=message}
 async function verifyAdmin(){
  const {data:{session}}=await db.auth.getSession();
- if(!session){$("login").hidden=false;$("dashboard").hidden=true;return false}
+ if(!session){$("login").hidden=false;$("dashboard").hidden=true;return false;}
  const {data,error}=await db.from("hospital_admins").select("role").eq("user_id",session.user.id).eq("role","admin").maybeSingle();
- if(error||!data){await db.auth.signOut();$("login").hidden=false;$("dashboard").hidden=true;showError("loginMessage","هذا الحساب غير مخوّل للوصول إلى لوحة الإدارة.");return false}
+ if(error||!data){await db.auth.signOut();$("login").hidden=false;$("dashboard").hidden=true;showError("loginMessage","هذا الحساب غير مخوّل للوصول إلى لوحة الإدارة.");return false;}
  $("login").hidden=true;$("dashboard").hidden=false;await loadRatings();return true;
 }
 async function loadRatings(){
@@ -110,35 +111,39 @@ async function loadRatings(){
   $("negative").textContent=negative.toLocaleString("ar-IQ");
   $("rate").textContent=(total?Math.round(positive/total*100):0).toLocaleString("ar-IQ")+"٪";
   const tbody=$("rows");tbody.replaceChildren();
-  if(!recent.data?.length){tbody.innerHTML='<tr><td colspan="4" class="empty">لا توجد تقييمات حتى الآن.</td></tr>'}
+  if(!recent.data?.length)tbody.innerHTML='<tr><td colspan="4" class="empty">لا توجد تقييمات حتى الآن.</td></tr>';
   else for(const item of recent.data){
-   const tr=document.createElement("tr");
-   const topic=item.conversation?.topic||"عام";
-   const question=item.conversation?.user_message||"غير متوفر";
+   const tr=document.createElement("tr"),topic=item.conversation?.topic||"عام",question=item.conversation?.user_message||"غير متوفر";
    const date=new Date(item.created_at).toLocaleString("ar-IQ",{dateStyle:"medium",timeStyle:"short"});
    tr.innerHTML='<td><span class="pill '+(item.rating===1?"good":"bad")+'">'+(item.rating===1?"مفيد 👍":"غير مفيد 👎")+'</span></td><td>'+safe(topic)+'</td><td>'+safe(question.length>180?question.slice(0,180)+"…":question)+'</td><td>'+safe(date)+'</td>';
    tbody.append(tr);
   }
   showError("dataMessage","تم تحديث البيانات بنجاح.");
  }catch(error){console.error("Ratings dashboard error",error);showError("dataMessage","تعذر تحميل التقييمات. تأكد من صلاحيات حساب الإدارة ثم حاول مجدداً.");}
- finally{$("refreshBtn").disabled=false}
+ finally{$("refreshBtn").disabled=false;}
 }
 $("loginForm").addEventListener("submit",async e=>{
  e.preventDefault();$("loginBtn").disabled=true;showError("loginMessage","جارٍ التحقق من الحساب…");
- const {error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
- if(error){showError("loginMessage","تعذر تسجيل الدخول. تحقق من البريد الإلكتروني وكلمة المرور.");$("loginBtn").disabled=false;return}
- await const recoveryRedirectUrl="https://ama98996t-crypto.github.io/Al-Haydariyah-AI-Assistant/reset-password.html";
+ try{
+  const {error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
+  if(error)throw error;
+  await verifyAdmin();
+ }catch(error){console.error("Login error",error);showError("loginMessage","تعذر تسجيل الدخول. تحقق من البريد الإلكتروني وكلمة المرور.");}
+ finally{$("loginBtn").disabled=false;}
+});
 $("forgotPasswordBtn").addEventListener("click",async()=>{
  const email=$("email").value.trim();
  if(!email){showError("resetRequestMessage","اكتب بريدك الإلكتروني أولاً.");$("email").focus();return;}
- $("forgotPasswordBtn").disabled=true;showError("resetRequestMessage","جارٍ إرسال رابط الاستعادة إلى بريدك…");
- const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:recoveryRedirectUrl});
- if(error){console.error("Password reset request error",error);showError("resetRequestMessage","تعذر إرسال الرابط. تحقق من إعدادات روابط إعادة التوجيه في Supabase.");}
- else showError("resetRequestMessage","إذا كان البريد مسجلاً، سيصلك رابط لتعيين كلمة مرور جديدة. افحص الوارد والرسائل غير المرغوب بها.");
- $("forgotPasswordBtn").disabled=false;
+ $("forgotPasswordBtn").disabled=true;showError("resetRequestMessage","جارٍ إرسال رابط الاستعادة…");
+ try{
+  const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:recoveryRedirectUrl});
+  if(error)throw error;
+  showError("resetRequestMessage","تم إرسال طلب الاستعادة. افحص الوارد والرسائل غير المرغوب بها.");
+ }catch(error){console.error("Password reset request error",error);showError("resetRequestMessage","تعذر إرسال الرابط: "+(error.message||"تحقق من الاتصال وإعدادات Supabase."));}
+ finally{$("forgotPasswordBtn").disabled=false;}
 });
-db.auth.onAuthStateChange((event)=>{
- if(event==="PASSWORD_RECOVERY"){
+db.auth.onAuthStateChange((event,session)=>{
+ if(event==="PASSWORD_RECOVERY"&&session){
   $("login").hidden=true;$("dashboard").hidden=true;$("recoveryPanel").hidden=false;
  }
 });
@@ -148,16 +153,21 @@ $("recoveryForm").addEventListener("submit",async e=>{
  if(password.length<8){showError("recoveryMessage","كلمة المرور يجب أن تكون 8 أحرف على الأقل.");return;}
  if(password!==$("recoveryConfirm").value){showError("recoveryMessage","كلمتا المرور غير متطابقتين.");return;}
  $("recoverySaveBtn").disabled=true;showError("recoveryMessage","جارٍ حفظ كلمة المرور الجديدة…");
- const {error}=await db.auth.updateUser({password});
- if(error){console.error("Recovery password update error",error);showError("recoveryMessage","تعذر تغيير كلمة المرور. أعد طلب رابط جديد وحاول مرة أخرى.");}
- else{showError("recoveryMessage","تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.");await db.auth.signOut();$("recoveryForm").reset();$("recoveryPanel").hidden=true;$("login").hidden=false;}
- $("recoverySaveBtn").disabled=false;
-});
-if(window.location.hash.includes("type=recovery")){$("login").hidden=true;$("recoveryPanel").hidden=false;}else{verifyAdmin();}$("loginBtn").disabled=false;
+ try{
+  const {error}=await db.auth.updateUser({password});if(error)throw error;
+  showError("recoveryMessage","تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.");
+  await db.auth.signOut();$("recoveryForm").reset();$("recoveryPanel").hidden=true;$("login").hidden=false;
+ }catch(error){console.error("Recovery password update error",error);showError("recoveryMessage","تعذر تغيير كلمة المرور: "+(error.message||"أعد طلب رابط جديد."));}
+ finally{$("recoverySaveBtn").disabled=false;}
 });
 $("refreshBtn").addEventListener("click",loadRatings);
 $("logoutBtn").addEventListener("click",async()=>{await db.auth.signOut();$("dashboard").hidden=true;$("login").hidden=false;});
-verifyAdmin();
-</script>
+(async()=>{
+ const hash=new URLSearchParams(location.hash.slice(1));
+ if(hash.get("type")==="recovery"){
+  $("login").hidden=true;$("recoveryPanel").hidden=false;
+ }else await verifyAdmin();
+})();
+</script>>
 </body>
 </html>
