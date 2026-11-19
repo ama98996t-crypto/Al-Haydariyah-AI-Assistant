@@ -30,7 +30,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:right;
 <h2>دخول الإدارة</h2><p class="muted">هذه الصفحة مخصصة للمستخدمين المخولين فقط.</p>
 <label>البريد الإلكتروني</label><input id="email" type="email" autocomplete="username">
 <label>كلمة المرور</label><input id="password" type="password" autocomplete="current-password">
-<button id="loginBtn">تسجيل الدخول</button><p id="loginMsg" class="error"></p>
+<button id="loginBtn" type="button">تسجيل الدخول</button><p id="loginMsg" class="error"></p>
 </section>
 <section id="dashboard" class="hidden">
 <div class="panel"><h1>لوحة المتابعة</h1><p class="muted">إحصائيات استخدام مساعد مستشفى الحيدرية. لا يتم عرض نصوص المحادثات أو بيانات تعريف الزوار.</p>
@@ -75,15 +75,37 @@ async function ensureRole(user){
  return data.role;
 }
 async function enter(user){
- await ensureRole(user);currentUser=user;
- $("login").classList.add("hidden");$("dashboard").classList.remove("hidden");$("logout").classList.remove("hidden");
- await Promise.all([loadStats(),loadNews(),loadComplaints(),loadKnowledge(),loadDepartments(),loadDoctors(),loadServices(),loadStaffPositions(),loadRatings(),loadQuestionInsights()]);
+ await ensureRole(user);
+ currentUser=user;
+ $("login").classList.add("hidden");
+ $("dashboard").classList.remove("hidden");
+ $("logout").classList.remove("hidden");
+ // Load each dashboard area independently; a secondary panel failure must not cancel login.
+ const tasks=[["الإحصائيات",loadStats],["الأخبار",loadNews],["الشكاوى",loadComplaints],["المعرفة",loadKnowledge],["الأقسام",loadDepartments],["الأطباء",loadDoctors],["المناصب",loadStaffPositions],["التقييمات",loadRatings],["تحليل الأسئلة",loadQuestionInsights]];
+ const results=await Promise.allSettled(tasks.map(([,fn])=>fn()));
+ const failed=results.map((r,i)=>r.status==="rejected"?tasks[i][0]:null).filter(Boolean);
+ if(failed.length)console.warn("تعذر تحميل بعض أقسام لوحة الإدارة:",failed);
 }
 $("loginBtn").onclick=async()=>{
- msg("loginMsg","جارٍ التحقق...");
- const {data,error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});
- if(error){msg("loginMsg",error.message,"error");return;}
- try{await enter(data.user);}catch(e){await db.auth.signOut();msg("loginMsg",e.message,"error");}
+ const btn=$("loginBtn");
+ btn.disabled=true;
+ msg("loginMsg","جارٍ التحقق من بيانات الدخول...");
+ try{
+  const email=$("email").value.trim(),password=$("password").value;
+  if(!email||!password){msg("loginMsg","أدخل البريد الإلكتروني وكلمة المرور.","error");return;}
+  const {data,error}=await db.auth.signInWithPassword({email,password});
+  if(error){msg("loginMsg","تعذر تسجيل الدخول: "+error.message,"error");return;}
+  if(!data?.user){msg("loginMsg","لم يرجع النظام بيانات الحساب. حاول مرة أخرى.","error");return;}
+  try{
+   await ensureRole(data.user);
+   await enter(data.user);
+  }catch(e){
+   await db.auth.signOut();
+   msg("loginMsg",e?.message||"تم تسجيل الدخول لكن تعذر التحقق من صلاحية الإدارة.","error");
+  }
+ }catch(e){
+  msg("loginMsg","حدث خطأ أثناء الاتصال: "+(e?.message||"خطأ غير معروف"),"error");
+ }finally{btn.disabled=false;}
 };
 $("logout").onclick=async()=>{await db.auth.signOut();location.reload();};
 db.auth.getSession().then(async({data})=>{if(data.session){try{await enter(data.session.user)}catch(e){await db.auth.signOut();}}});
