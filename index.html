@@ -294,6 +294,7 @@ body[data-theme="dark"] .home-note{background:#c4a36a16}
  *,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
 
+.answer-actions{display:flex;gap:7px;flex-wrap:wrap;margin:8px 4px 0}.answer-actions button{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:9px;padding:5px 9px;font-size:10px;cursor:pointer}.answer-actions button:hover{border-color:var(--gold);color:var(--ink)}
 .answer-rating{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:9px 4px 0;color:var(--muted);font-size:10px}
 .answer-rating button{border:1px solid var(--line);background:var(--paper);border-radius:9px;padding:5px 9px;cursor:pointer}
 .answer-rating button:hover{border-color:var(--gold)}
@@ -444,7 +445,6 @@ async function recordVisit() {
   } catch (e) { console.warn("Visit analytics unavailable", e); }
 }
 recordVisit();
-recordVisit();
 
 // Track a confirmed PWA installation (or first launch in standalone mode).
 let deferredInstallPrompt = null;
@@ -553,6 +553,26 @@ if(role==="assistant"){
 }
 
 body.append(sender,bubble);
+if(role==="assistant"){
+  const actions=document.createElement("div");
+  actions.className="answer-actions";
+  const copyButton=document.createElement("button");
+  copyButton.type="button";copyButton.textContent="نسخ الإجابة";
+  copyButton.addEventListener("click",async()=>{
+    try{await navigator.clipboard.writeText(String(text));copyButton.textContent="تم النسخ";}
+    catch(_){copyButton.textContent="تعذر النسخ";}
+  });
+  const shareButton=document.createElement("button");
+  shareButton.type="button";shareButton.textContent="مشاركة";
+  shareButton.addEventListener("click",async()=>{
+    const payload={title:"مساعد مستشفى الحيدرية",text:String(text)};
+    try{
+      if(navigator.share)await navigator.share(payload);
+      else{await navigator.clipboard.writeText(String(text));shareButton.textContent="تم نسخ الإجابة للمشاركة";}
+    }catch(error){if(error?.name!=="AbortError")shareButton.textContent="تعذرت المشاركة";}
+  });
+  actions.append(copyButton,shareButton);body.append(actions);
+}
 if(role==="assistant" && Number.isSafeInteger(window.__lastAnswerConversationId)){
   const rating=document.createElement("div");
   rating.className="answer-rating";
@@ -650,6 +670,7 @@ async function send(q){
  try {
    add(q,"user");
    history.push({role:"user",text:q});
+   saveConversationHistory();
    $("#prompt").value="";
    $("#prompt").style.height="auto";
    const waitLabel=waitRow?.querySelector(".sender");
@@ -662,6 +683,7 @@ async function send(q){
 
    history.push({role:"model",text:result.answer});
    history=history.slice(-12);
+   saveConversationHistory();
  } catch(e) {
    console.error("Hospital assistant send failed:",e);
    $("#typing")?.remove();
@@ -712,6 +734,7 @@ $("#new").addEventListener("click",()=>{
 if(busy)return;
 $("#chat").innerHTML="";
 history=[];
+try{sessionStorage.removeItem("alh_chat_history");}catch(_){}
 $("#chat").classList.remove("active");
 $("#welcome").style.display="block";
 $("#prompt").value="";
@@ -784,6 +807,20 @@ complaintTrackForm.addEventListener("submit",async e=>{
  }catch(err){console.error("Complaint tracking failed",err);status.textContent=err?.message||"تعذر جلب حالة الطلب.";}
  finally{button.disabled=false;}
 });
+
+
+// Restore this tab's recent conversation after refresh; it is never shared across visitors.
+function saveConversationHistory(){
+  try{sessionStorage.setItem("alh_chat_history",JSON.stringify(history.slice(-12)));}
+  catch(error){console.warn("Conversation session could not be saved",error);}
+}
+try{
+  const saved=JSON.parse(sessionStorage.getItem("alh_chat_history")||"[]");
+  if(Array.isArray(saved)){
+    history=saved.filter(m=>m&&(m.role==="user"||m.role==="model")&&typeof m.text==="string").slice(-12);
+    for(const item of history)add(item.text,item.role==="user"?"user":"assistant");
+  }
+}catch(error){console.warn("Conversation session could not be restored",error);}
 
 </script>
 </body>
