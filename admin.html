@@ -35,7 +35,21 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:right;
 <div class="panel"><h1>لوحة المتابعة</h1><p class="muted">إحصائيات استخدام مساعد مستشفى الحيدرية. لا يتم عرض نصوص المحادثات أو بيانات تعريف الزوار.</p>
 <div class="grid"><div class="metric">الزيارات<b id="visits">—</b></div><div class="metric">المحادثات<b id="chats">—</b></div><div class="metric">زوار مميزون<b id="unique">—</b></div><div class="metric">إعلانات منشورة<b id="newsCount">—</b></div></div>
 <div class="row no-print" style="margin-top:14px"><button onclick="loadStats()">تحديث الإحصائيات</button><button class="secondary" onclick="window.print()">طباعة / حفظ PDF</button></div></div>
-<div class="tabs no-print"><button data-tab="ratings">تقييمات الإجابات</button><button class="active" data-tab="news">الأخبار والإعلانات</button><button data-tab="complaints">الشكاوى والمقترحات</button><button data-tab="knowledge">تعليمات الموظفين</button><button data-tab="departments">الأقسام</button><button data-tab="doctors">الأطباء</button><button data-tab="staffPositions">المناصب والأسماء الإضافية</button><button data-tab="services">الخدمات</button><button data-tab="documents">المستندات</button></div>
+<div class="tabs no-print"><button data-tab="questionInsights">تحليل الأسئلة</button><button data-tab="ratings">تقييمات الإجابات</button><button class="active" data-tab="news">الأخبار والإعلانات</button><button data-tab="complaints">الشكاوى والمقترحات</button><button data-tab="knowledge">تعليمات الموظفين</button><button data-tab="departments">الأقسام</button><button data-tab="doctors">الأطباء</button><button data-tab="staffPositions">المناصب والأسماء الإضافية</button><button data-tab="services">الخدمات</button><button data-tab="documents">المستندات</button></div>
+<section id="questionInsights" class="panel tab hidden">
+<h2>تحليل أسئلة المراجعين</h2>
+<p class="muted">تحليل داخلي لرسائل المساعد المسجلة. لا يعرض أسماء أو أرقام هواتف أو معرّفات الزوار. تصنيف الإجابات غير الكافية آلي وتقريبي ويحتاج مراجعة بشرية.</p>
+<div class="grid">
+<div class="metric">الأسئلة المسجلة<b id="qiTotal">—</b></div>
+<div class="metric">أسئلة متكررة<b id="qiRepeated">—</b></div>
+<div class="metric">تحتاج مراجعة<b id="qiNeedsReview">—</b></div>
+<div class="metric">المواضيع المختلفة<b id="qiTopics">—</b></div>
+</div>
+<div class="row no-print" style="margin:14px 0"><button id="refreshQuestionInsights" class="secondary">تحديث التحليل</button></div>
+<h3>أكثر المواضيع وروداً</h3><div id="qiTopicList" class="muted">جارٍ التحميل...</div>
+<h3 style="margin-top:22px">الأسئلة المتكررة</h3><div id="qiRepeatedList" class="muted">جارٍ التحميل...</div>
+<h3 style="margin-top:22px">أسئلة قد تحتاج تحسين الإجابة عنها</h3><div id="qiReviewList" class="muted">جارٍ التحميل...</div>
+</section>
 <section id="ratings" class="panel tab hidden"><h2>تقييم إجابات المساعد</h2><p class="muted">تظهر هنا التقييمات المرسلة من مستخدمي المساعد. لا تظهر هذه البيانات للعامة.</p><div class="grid"><div class="metric">إجمالي التقييمات<b id="ratingTotal">—</b></div><div class="metric">إجابات مفيدة<b id="ratingPositive">—</b></div><div class="metric">تحتاج مراجعة<b id="ratingNegative">—</b></div><div class="metric">نسبة الرضا<b id="ratingRate">—</b></div></div><div class="row no-print" style="margin-top:14px"><button id="refreshRatings" class="secondary">تحديث التقييمات</button></div><div id="ratingList" class="muted" style="margin-top:14px">جارٍ تحميل التقييمات...</div></section>
 <section id="news" class="panel tab"><h2>إضافة إعلان أو خبر</h2><input id="newsTitle" placeholder="عنوان الخبر"><select id="newsCategory"><option value="news">خبر</option><option value="announcement">إعلان</option><option value="alert">تنبيه</option><option value="event">فعالية</option></select><textarea id="newsBody" placeholder="نص الخبر أو الإعلان"></textarea><div class="row"><button id="saveNews">حفظ ونشر</button><button class="secondary" id="saveDraft">حفظ كمسودة</button></div><div id="newsList"></div></section>
 <section id="complaints" class="panel tab hidden"><h2>إدارة الشكاوى والمقترحات</h2><p class="muted">بيانات المشتكين لا تظهر إلا للمستخدمين المخولين. الردود تظهر لصاحب الطلب في صفحة المتابعة الخاصة.</p><button class="secondary" id="refreshComplaints">تحديث القائمة</button><div id="complaintList" class="muted">جارٍ تحميل الطلبات...</div></section>
@@ -61,7 +75,7 @@ async function ensureRole(user){
 async function enter(user){
  await ensureRole(user);currentUser=user;
  $("login").classList.add("hidden");$("dashboard").classList.remove("hidden");$("logout").classList.remove("hidden");
- await Promise.all([loadStats(),loadNews(),loadComplaints(),loadKnowledge(),loadDepartments(),loadDoctors(),loadServices(),loadStaffPositions(),loadRatings()]);
+ await Promise.all([loadStats(),loadNews(),loadComplaints(),loadKnowledge(),loadDepartments(),loadDoctors(),loadServices(),loadStaffPositions(),loadRatings(),loadQuestionInsights()]);
 }
 $("loginBtn").onclick=async()=>{
  msg("loginMsg","جارٍ التحقق...");
@@ -76,6 +90,7 @@ document.querySelectorAll("[data-tab]").forEach(btn=>btn.onclick=()=>{
  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("hidden",x.id!==btn.dataset.tab));
  if(btn.dataset.tab==="complaints")loadComplaints();
  if(btn.dataset.tab==="ratings")loadRatings();
+ if(btn.dataset.tab==="questionInsights")loadQuestionInsights();
 });
 async function loadRatings(){
  const host=$("ratingList");
@@ -93,6 +108,25 @@ async function loadRatings(){
  host.innerHTML=rows.length?rows.map(x=>'<article class="item" style="border:1px solid var(--line);border-radius:12px;padding:12px;margin:9px 0"><b>'+(x.rating===1?'👍 إجابة مفيدة':'👎 إجابة تحتاج مراجعة')+'</b><div class="muted">رقم المحادثة: '+esc(x.conversation_id)+' · '+new Date(x.created_at).toLocaleString("ar-IQ")+'</div>'+(x.feedback?'<p>'+esc(x.feedback)+'</p>':'')+'</article>').join(""):'<p class="muted">لا توجد تقييمات حتى الآن.</p>';
 }
 $("refreshRatings").onclick=loadRatings;
+
+const QUESTION_REVIEW_PATTERNS=["لا تتضمن","غير منشورة","غير متوفرة","غير متوفر","ما متوفر","ما متوفرة","ما عندي معلومات","ما عندي بيانات","لا أملك معلومات","لم أجد معلومات","لا توجد معلومات","لا تتوفر معلومات","غير موجودة ضمن البيانات","ما موجودة ضمن البيانات"];
+function normalizeQuestion(value){return String(value||"").toLowerCase().replace(/[؟?!.,،؛:()[\]{}"']/g," ").replace(/[إأآ]/g,"ا").replace(/ة/g,"ه").replace(/\s+/g," ").trim();}
+function isLikelyUnanswered(row){const answer=String(row.assistant_message||"");if(/تشخيص|جرعات|وصفة|دواء|حالة طارئة/.test(answer))return false;return QUESTION_REVIEW_PATTERNS.some(p=>answer.includes(p));}
+async function loadQuestionInsights(){
+ const hosts=["qiTopicList","qiRepeatedList","qiReviewList"];hosts.forEach(id=>$(id).textContent="جارٍ تحليل البيانات...");
+ const {data,error}=await db.from("hospital_ai_conversation_logs").select("user_message,assistant_message,topic,created_at").order("created_at",{ascending:false}).limit(1000);
+ if(error){hosts.forEach(id=>$(id).textContent="تعذر تحميل التحليل: "+error.message);return;}
+ const rows=data||[],groups=new Map(),topics=new Map();
+ for(const row of rows){const q=String(row.user_message||"").trim();if(!q)continue;const key=normalizeQuestion(q);if(!key)continue;const old=groups.get(key)||{question:q,count:0,latest:row.created_at};old.count++;if(new Date(row.created_at)>new Date(old.latest)){old.latest=row.created_at;old.question=q;}groups.set(key,old);const topic=String(row.topic||"غير مصنف");topics.set(topic,(topics.get(topic)||0)+1);}
+ const repeated=[...groups.values()].filter(x=>x.count>1).sort((a,b)=>b.count-a.count).slice(0,12);
+ const review=rows.filter(isLikelyUnanswered).slice(0,30);
+ $("qiTotal").textContent=rows.length;$("qiRepeated").textContent=[...groups.values()].filter(x=>x.count>1).length;$("qiNeedsReview").textContent=review.length;$("qiTopics").textContent=topics.size;
+ $("qiTopicList").innerHTML=[...topics.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10).map(([name,count])=>'<div class="item"><b>'+esc(name)+'</b><span class="muted"> — '+count+' سؤال</span></div>').join("")||'<p class="muted">لا توجد بيانات.</p>';
+ $("qiRepeatedList").innerHTML=repeated.map(x=>'<div class="item"><b>'+esc(x.question)+'</b><div class="muted">تكرر '+x.count+' مرات · آخر ورود '+new Date(x.latest).toLocaleString("ar-IQ")+'</div></div>').join("")||'<p class="muted">لا توجد أسئلة متكررة ضمن السجلات الحالية.</p>';
+ $("qiReviewList").innerHTML=review.map(x=>'<div class="item"><b>'+esc(x.user_message)+'</b><div class="muted">الموضوع: '+esc(x.topic||"غير مصنف")+' · '+new Date(x.created_at).toLocaleString("ar-IQ")+'</div></div>').join("")||'<p class="muted">لم تظهر إجابات مرشحة للمراجعة وفق الكلمات المفتاحية الحالية.</p>';
+}
+$("refreshQuestionInsights").onclick=loadQuestionInsights;
+
 async function loadStats(){
  const {data,error}=await db.from("hospital_ai_analytics_events").select("visitor_hash,event_type,topic,created_at").limit(10000);
  if(error){$("visits").textContent="غير متاح";$("chats").textContent="غير متاح";return;}
