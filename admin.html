@@ -19,6 +19,7 @@ textarea{min-height:100px;resize:vertical}button{border:0;border-radius:10px;pad
 .row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}.item{padding:12px 0;border-bottom:1px solid var(--line)}.item:last-child{border:0}
 .hidden{display:none!important}.error{color:#a93636;font-size:13px}.success{color:#197448;font-size:13px}
 table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:right;padding:10px;border-bottom:1px solid var(--line)}
+.activity-chart{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;align-items:end;min-height:150px;margin-top:14px}.activity-day{display:flex;flex-direction:column;align-items:center;justify-content:end;gap:7px;min-width:0;height:140px}.activity-bar-wrap{height:100px;width:100%;display:flex;align-items:end;justify-content:center;background:#f1f6f8;border-radius:9px 9px 4px 4px;overflow:hidden}.activity-bar{width:62%;min-height:3px;background:linear-gradient(180deg,#4d91ad,#0b3554);border-radius:7px 7px 0 0}.activity-day small{font-size:10px;color:var(--mut)}.activity-day b{font-size:11px;color:var(--n)}
 @media(max-width:700px){.grid{grid-template-columns:repeat(2,1fr)}header{padding:14px 16px}main{margin:14px auto}.panel{padding:15px}}
 @media print{header,.tabs,#login,.no-print{display:none!important}body{background:white}.panel{box-shadow:none;border:0}}
 </style></head>
@@ -35,6 +36,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:right;
 <div class="panel"><h1>لوحة المتابعة</h1><p class="muted">إحصائيات استخدام مساعد مستشفى الحيدرية. لا يتم عرض نصوص المحادثات أو بيانات تعريف الزوار.</p>
 <div class="grid"><div class="metric">الزيارات<b id="visits">—</b></div><div class="metric">المحادثات<b id="chats">—</b></div><div class="metric">زوار مميزون<b id="unique">—</b></div><div class="metric">إعلانات منشورة<b id="newsCount">—</b></div></div>
 <div class="row no-print" style="margin-top:14px"><button onclick="loadStats()">تحديث الإحصائيات</button><button class="secondary" onclick="window.print()">طباعة / حفظ PDF</button></div></div>
+<div class="panel"><h2>نشاط المساعد خلال آخر 7 أيام</h2><p class="muted">عدد الأسئلة المسجلة يومياً حسب سجلات الاستخدام.</p><div id="activityChart" class="activity-chart" aria-label="رسم بياني لعدد الأسئلة خلال سبعة أيام"><p class="muted">جارٍ تحميل النشاط...</p></div></div>
 <div class="tabs no-print"><button data-tab="questionInsights">تحليل الأسئلة</button><button data-tab="ratings">تقييمات الإجابات</button><button class="active" data-tab="news">الأخبار والإعلانات</button><button data-tab="complaints">الشكاوى والمقترحات</button><button data-tab="knowledge">تعليمات الموظفين</button><button data-tab="departments">الأقسام</button><button data-tab="doctors">الأطباء</button><button data-tab="staffPositions">المناصب والأسماء الإضافية</button><button data-tab="services">الخدمات</button><button data-tab="documents">المستندات</button></div>
 <section id="questionInsights" class="panel tab hidden">
 <h2>تحليل أسئلة المراجعين</h2>
@@ -129,10 +131,25 @@ $("refreshQuestionInsights").onclick=loadQuestionInsights;
 
 async function loadStats(){
  const {data,error}=await db.from("hospital_ai_analytics_events").select("visitor_hash,event_type,topic,created_at").limit(10000);
- if(error){$("visits").textContent="غير متاح";$("chats").textContent="غير متاح";return;}
- $("visits").textContent=data.filter(x=>x.event_type==="visit").length;
- $("chats").textContent=data.filter(x=>x.event_type==="chat").length;
- $("unique").textContent=new Set(data.map(x=>x.visitor_hash)).size;
+ if(error){$("visits").textContent="غير متاح";$("chats").textContent="غير متاح";$("unique").textContent="غير متاح";$("activityChart").textContent="تعذر تحميل النشاط.";return;}
+ const rows=data||[];
+ $("visits").textContent=rows.filter(x=>x.event_type==="visit").length;
+ $("chats").textContent=rows.filter(x=>x.event_type==="chat").length;
+ $("unique").textContent=new Set(rows.map(x=>x.visitor_hash).filter(Boolean)).size;
+ const days=[];
+ for(let offset=6;offset>=0;offset--){
+  const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-offset);
+  const key=[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
+  days.push({key,label:d.toLocaleDateString("ar-IQ",{weekday:"short"}),count:0});
+ }
+ const byDay=new Map(days.map(x=>[x.key,x]));
+ for(const row of rows){
+  if(row.event_type!=="chat"||!row.created_at)continue;
+  const d=new Date(row.created_at),key=[d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
+  if(byDay.has(key))byDay.get(key).count++;
+ }
+ const max=Math.max(1,...days.map(x=>x.count));
+ $("activityChart").innerHTML=days.map(day=>'<div class="activity-day"><b>'+day.count+'</b><div class="activity-bar-wrap"><div class="activity-bar" style="height:'+Math.max(3,day.count/max*100)+'%"></div></div><small>'+esc(day.label)+'</small></div>').join("");
  const n=await db.from("hospital_announcements").select("id",{count:"exact",head:true});
  $("newsCount").textContent=n.count??0;
 }
