@@ -300,6 +300,33 @@ body[data-theme="dark"] .home-note{background:#c4a36a16}
 .answer-rating button:disabled{opacity:.5;cursor:default}
 .answer-rating small{font-size:9px}
 .answer-rating.rated button{display:none}
+
+/* Complaints and suggestions */
+.complaint-modal[hidden]{display:none!important}
+.complaint-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:14px}
+.complaint-backdrop{position:absolute;inset:0;background:#071a27b8;backdrop-filter:blur(4px)}
+.complaint-panel{position:relative;width:min(100%,560px);max-height:88dvh;overflow:auto;background:var(--paper,#fff);color:var(--ink,#183448);border:1px solid var(--line,#ddd);border-radius:22px;padding:20px;box-shadow:0 24px 80px #071a2750}
+.complaint-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.complaint-head h2{font-size:20px;margin:4px 0 0}
+.complaint-close{border:1px solid var(--line);background:transparent;color:inherit;border-radius:50%;width:38px;height:38px;font-size:24px;cursor:pointer}
+.complaint-intro,.complaint-privacy{font-size:12px;line-height:1.9;color:var(--muted)}
+.complaint-tabs{display:flex;gap:8px;margin:14px 0}
+.complaint-tabs button{flex:1;border:1px solid var(--line);border-radius:12px;padding:10px;background:transparent;color:inherit}
+.complaint-tabs button.active{background:#12364c;color:white;border-color:#12364c}
+.complaint-form{display:grid;gap:12px}
+.complaint-form[hidden]{display:none}
+.complaint-form label{display:grid;gap:6px;font-size:12px;font-weight:700}
+.complaint-form input,.complaint-form textarea,.complaint-form select{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg,#fff);color:inherit;font:inherit;font-size:14px;outline:none}
+.complaint-form textarea{resize:vertical;min-height:100px}
+.complaint-submit{border:0;border-radius:13px;background:#12364c;color:white;padding:13px;font:inherit;font-weight:700;cursor:pointer}
+.complaint-submit:disabled{opacity:.55;cursor:wait}
+.complaint-status{font-size:12px;line-height:1.8;color:var(--muted);margin:0}
+.complaint-result{border:1px solid var(--line);background:var(--bg,#f5f6f5);border-radius:13px;padding:13px;font-size:13px;line-height:1.9;overflow-wrap:anywhere}
+.complaint-result strong{color:var(--gold,#b99a61)}
+.complaint-result button{margin-top:8px;border:1px solid var(--line);border-radius:9px;padding:7px 12px;background:transparent;color:inherit}
+body[data-theme="dark"] .complaint-panel{background:#102b3a;color:#edf2f4}
+body[data-theme="dark"] .complaint-form input,body[data-theme="dark"] .complaint-form textarea,body[data-theme="dark"] .complaint-form select{background:#173746;color:#edf2f4}
+
 </style>
 </head>
 <body>
@@ -338,7 +365,7 @@ body[data-theme="dark"] .home-note{background:#c4a36a16}
     <button class="service-card" data-q="شنو الخدمات الطبية المتوفرة بالمستشفى؟"><span class="service-icon">⚕</span><b>الخدمات الطبية</b><small>الخدمات المتاحة</small><span class="card-arrow">←</span></button>
     <button class="service-card" data-q="من هم الأطباء واختصاصاتهم في مستشفى الحيدرية؟"><span class="service-icon">♙</span><b>الأطباء</b><small>الأسماء والاختصاصات</small><span class="card-arrow">←</span></button>
     <button class="service-card" data-q="اعرض لي إحصائيات مستشفى الحيدرية المنشورة"><span class="service-icon">▥</span><b>الإحصائيات</b><small>أرقام وتقارير المستشفى</small><span class="card-arrow">←</span></button>
-    <button class="service-card" data-q="شلون أقدم شكوى أو اقتراح للمستشفى؟"><span class="service-icon">✉</span><b>الشكاوى والمقترحات</b><small>إرسال ملاحظتك</small><span class="card-arrow">←</span></button>
+    <button class="service-card" id="openComplaints" type="button"><span class="service-icon">✉</span><b>الشكاوى والمقترحات</b><small>إرسال ومتابعة طلبك</small><span class="card-arrow">←</span></button>
     <a class="service-card" href="./news.html"><span class="service-icon">▤</span><b>الأخبار والإعلانات</b><small>آخر مستجدات المستشفى</small><span class="card-arrow">←</span></a>
   </div>
   <div class="home-note"><span>✦</span> اسأل المساعد مباشرة من حقل الكتابة بالأسفل، وسيساعدك بالمعلومات المتاحة.</div>
@@ -348,6 +375,33 @@ body[data-theme="dark"] .home-note{background:#c4a36a16}
 
 
 </main>
+
+<div class="complaint-modal" id="complaintsModal" hidden>
+ <div class="complaint-backdrop" data-close-complaints></div>
+ <section class="complaint-panel" role="dialog" aria-modal="true" aria-labelledby="complaintsTitle">
+  <div class="complaint-head"><div><span class="eyebrow">خدمة المراجعين</span><h2 id="complaintsTitle">الشكاوى والمقترحات</h2></div><button type="button" class="complaint-close" data-close-complaints aria-label="إغلاق">×</button></div>
+  <p class="complaint-intro">أرسل ملاحظتك إلى إدارة المستشفى، أو تابع طلباً سابقاً باستخدام رقم المتابعة ورمز الوصول.</p>
+  <div class="complaint-tabs"><button type="button" class="active" data-complaint-tab="submit">إرسال طلب</button><button type="button" data-complaint-tab="track">متابعة طلب</button></div>
+  <form id="complaintSubmitForm" class="complaint-form">
+   <label>نوع الطلب<select id="complaintType" required><option value="شكوى">شكوى</option><option value="اقتراح">اقتراح</option></select></label>
+   <label>الاسم الكامل<input id="complaintName" maxlength="120" autocomplete="name" required placeholder="اكتب اسمك الكامل"></label>
+   <label>رقم الهاتف<input id="complaintPhone" maxlength="24" inputmode="tel" autocomplete="tel" required placeholder="رقم هاتف للتواصل"></label>
+   <label>تفاصيل الشكوى أو الاقتراح<textarea id="complaintMessage" maxlength="5000" rows="4" required placeholder="اكتب تفاصيل ملاحظتك (10 أحرف على الأقل)"></textarea></label>
+   <p class="complaint-privacy">تُستخدم بياناتك لمتابعة الطلب والتواصل بشأنه. لا تكتب معلومات طبية حساسة لا حاجة لها.</p>
+   <button class="complaint-submit" id="complaintSend" type="submit">إرسال إلى إدارة المستشفى</button>
+   <p class="complaint-status" id="complaintSubmitStatus" role="status" aria-live="polite"></p>
+   <div class="complaint-result" id="complaintCreated" hidden></div>
+  </form>
+  <form id="complaintTrackForm" class="complaint-form" hidden>
+   <label>رقم المتابعة<input id="complaintTrackingCode" required placeholder="مثال: HA-2026-..."></label>
+   <label>رمز الوصول<input id="complaintAccessToken" required autocomplete="off" placeholder="أدخل رمز الوصول الذي ظهر عند الإرسال"></label>
+   <button class="complaint-submit" id="complaintTrack" type="submit">عرض حالة الطلب</button>
+   <p class="complaint-status" id="complaintTrackStatus" role="status" aria-live="polite"></p>
+   <div class="complaint-result" id="complaintTrackResult" hidden></div>
+  </form>
+ </section>
+</div>
+
 <nav class="bottom-nav" aria-label="التنقل الرئيسي">
 <button class="nav-item active" id="navHome" type="button"><span>⌂</span><small>الرئيسية</small></button>
 <button class="nav-item" id="navDepartments" type="button"><span>✚</span><small>الأقسام</small></button>
@@ -673,6 +727,54 @@ if ("serviceWorker" in navigator) {
     }
   });
 }
+
+const complaintsModal=document.querySelector("#complaintsModal");
+const complaintSubmitForm=document.querySelector("#complaintSubmitForm");
+const complaintTrackForm=document.querySelector("#complaintTrackForm");
+function openComplaints(){complaintsModal.hidden=false;document.body.style.overflow="hidden";}
+function closeComplaints(){complaintsModal.hidden=true;document.body.style.overflow="";}
+document.querySelector("#openComplaints").addEventListener("click",openComplaints);
+document.querySelectorAll("[data-close-complaints]").forEach(el=>el.addEventListener("click",closeComplaints));
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!complaintsModal.hidden)closeComplaints();});
+document.querySelectorAll("[data-complaint-tab]").forEach(tab=>tab.addEventListener("click",()=>{
+ const tracking=tab.dataset.complaintTab==="track";
+ complaintSubmitForm.hidden=tracking;complaintTrackForm.hidden=!tracking;
+ document.querySelectorAll("[data-complaint-tab]").forEach(x=>x.classList.toggle("active",x===tab));
+}));
+function showComplaintResult(host,html){host.innerHTML=html;host.hidden=false;}
+function escapeComplaintText(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));}
+complaintSubmitForm.addEventListener("submit",async e=>{
+ e.preventDefault();
+ const button=document.querySelector("#complaintSend"),status=document.querySelector("#complaintSubmitStatus"),result=document.querySelector("#complaintCreated");
+ button.disabled=true;result.hidden=true;status.textContent="جارٍ إرسال طلبك بأمان...";
+ try{
+  const {data,error}=await db.functions.invoke("hospital-complaints",{body:{action:"submit",request_type:$("#complaintType").value,full_name:$("#complaintName").value,phone:$("#complaintPhone").value,message:$("#complaintMessage").value}});
+  if(error)throw error;
+  if(!data?.success||!data?.tracking_code||!data?.access_token)throw new Error(data?.error||"تعذر تأكيد حفظ الطلب.");
+  status.textContent="تم استلام طلبك.";
+  showComplaintResult(result,"<strong>تم استلام طلبك بنجاح</strong><br>رقم المتابعة: <strong>"+escapeComplaintText(data.tracking_code)+"</strong><br>رمز الوصول: <strong>"+escapeComplaintText(data.access_token)+"</strong><br><small>احتفظ بالرقم والرمز معاً؛ تحتاجهما لمتابعة الطلب. لن يظهر رمز الوصول مرة أخرى.</small><br><button type='button' id='copyComplaintCredentials'>نسخ بيانات المتابعة</button>");
+  $("#copyComplaintCredentials").addEventListener("click",()=>GenUI.copy("رقم المتابعة: "+data.tracking_code+"\nرمز الوصول: "+data.access_token));
+  complaintSubmitForm.reset();
+ }catch(err){console.error("Complaint submit failed",err);status.textContent=err?.message||"تعذر إرسال الطلب. حاول لاحقاً.";}
+ finally{button.disabled=false;}
+});
+complaintTrackForm.addEventListener("submit",async e=>{
+ e.preventDefault();
+ const button=$("#complaintTrack"),status=$("#complaintTrackStatus"),result=$("#complaintTrackResult");
+ button.disabled=true;result.hidden=true;status.textContent="جارٍ التحقق من بيانات المتابعة...";
+ try{
+  const {data,error}=await db.functions.invoke("hospital-complaints",{body:{action:"track",tracking_code:$("#complaintTrackingCode").value,access_token:$("#complaintAccessToken").value}});
+  if(error)throw error;
+  const c=data?.complaint||data;
+  if(!data?.success||!c?.tracking_code)throw new Error(data?.error||"تعذر العثور على الطلب.");
+  status.textContent="تم العثور على طلبك.";
+  const replies=Array.isArray(c.replies)?c.replies:[];
+  const replyHtml=replies.length?replies.map(r=>"<p>"+escapeComplaintText(r.reply)+"<br><small>"+escapeComplaintText(new Date(r.created_at).toLocaleString("ar-IQ"))+"</small></p>").join(""):"<p>لا توجد ردود حتى الآن.</p>";
+  showComplaintResult(result,"<strong>رقم الطلب:</strong> "+escapeComplaintText(c.tracking_code)+"<br><strong>النوع:</strong> "+escapeComplaintText(c.request_type)+"<br><strong>الحالة:</strong> "+escapeComplaintText(c.status)+"<hr><strong>ردود إدارة المستشفى</strong>"+replyHtml);
+ }catch(err){console.error("Complaint tracking failed",err);status.textContent=err?.message||"تعذر جلب حالة الطلب.";}
+ finally{button.disabled=false;}
+});
+
 </script>
 </body>
 </html>
