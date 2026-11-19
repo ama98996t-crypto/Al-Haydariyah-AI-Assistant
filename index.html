@@ -753,7 +753,7 @@ complaintSubmitForm.addEventListener("submit",async e=>{
   if(!data?.success||!data?.tracking_code||!data?.access_token)throw new Error(data?.error||"تعذر تأكيد حفظ الطلب.");
   status.textContent="تم استلام طلبك.";
   showComplaintResult(result,"<strong>تم استلام طلبك بنجاح</strong><br>رقم المتابعة: <strong>"+escapeComplaintText(data.tracking_code)+"</strong><br>رمز الوصول: <strong>"+escapeComplaintText(data.access_token)+"</strong><br><small>احتفظ بالرقم والرمز معاً؛ تحتاجهما لمتابعة الطلب. لن يظهر رمز الوصول مرة أخرى.</small><br><button type='button' id='copyComplaintCredentials'>نسخ بيانات المتابعة</button>");
-  $("#copyComplaintCredentials").addEventListener("click",()=>GenUI.copy("رقم المتابعة: "+data.tracking_code+"\nرمز الوصول: "+data.access_token));
+  $("#copyComplaintCredentials").addEventListener("click",async()=>{const value="رقم المتابعة: "+data.tracking_code+"\nرمز الوصول: "+data.access_token;try{await navigator.clipboard.writeText(value);$("#copyComplaintCredentials").textContent="تم النسخ";}catch(_){status.textContent="انسخ رقم المتابعة ورمز الوصول يدوياً واحتفظ بهما.";}});
   complaintSubmitForm.reset();
  }catch(err){console.error("Complaint submit failed",err);status.textContent=err?.message||"تعذر إرسال الطلب. حاول لاحقاً.";}
  finally{button.disabled=false;}
