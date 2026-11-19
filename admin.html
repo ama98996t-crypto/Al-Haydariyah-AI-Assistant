@@ -157,7 +157,8 @@ async function loadStats(){
  const rows=data||[];
  $("visits").textContent=rows.filter(x=>x.event_type==="visit").length;
  $("chats").textContent=rows.filter(x=>x.event_type==="chat").length;
- const visitRows=rows.filter(x=>x.event_type==="visit");\n $("unique").textContent=new Set(visitRows.map(x=>x.visitor_hash).filter(Boolean)).size;
+ const visitRows=rows.filter(x=>x.event_type==="visit");
+ $("unique").textContent=new Set(visitRows.map(x=>x.visitor_hash).filter(Boolean)).size;
  const days=[];
  for(let offset=6;offset>=0;offset--){
   const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-offset);
