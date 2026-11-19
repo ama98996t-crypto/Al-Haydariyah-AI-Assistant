@@ -34,7 +34,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:right;
 </section>
 <section id="dashboard" class="hidden">
 <div class="panel"><h1>لوحة المتابعة</h1><p class="muted">إحصائيات استخدام مساعد مستشفى الحيدرية. لا يتم عرض نصوص المحادثات أو بيانات تعريف الزوار.</p>
-<div class="grid"><div class="metric">الزيارات<b id="visits">—</b></div><div class="metric">المحادثات<b id="chats">—</b></div><div class="metric">زوار مميزون<b id="unique">—</b></div><div class="metric">إعلانات منشورة<b id="newsCount">—</b></div></div>
+<div class="grid"><div class="metric">مرات الدخول للموقع<b id="visits">—</b></div><div class="metric">زوار مميزون للموقع<b id="unique">—</b></div><div class="metric">المحادثات<b id="chats">—</b></div><div class="metric">إعلانات منشورة<b id="newsCount">—</b></div></div><p class="muted">الزوار المميزون = عدد المتصفحات أو الأجهزة المختلفة التي دخلت للموقع، ويُحتسب الزائر مرة واحدة خلال الفترة المسجلة، وليس عدد الأشخاص المؤكد بهويتهم.</p>
 <div class="row no-print" style="margin-top:14px"><button onclick="loadStats()">تحديث الإحصائيات</button><button class="secondary" onclick="window.print()">طباعة / حفظ PDF</button></div></div>
 <div class="panel"><h2>نشاط المساعد خلال آخر 7 أيام</h2><p class="muted">عدد الأسئلة المسجلة يومياً حسب سجلات الاستخدام.</p><div id="activityChart" class="activity-chart" aria-label="رسم بياني لعدد الأسئلة خلال سبعة أيام"><p class="muted">جارٍ تحميل النشاط...</p></div></div>
 <div class="tabs no-print"><button data-tab="questionInsights">تحليل الأسئلة</button><button data-tab="ratings">تقييمات الإجابات</button><button class="active" data-tab="news">الأخبار والإعلانات</button><button data-tab="complaints">الشكاوى والمقترحات</button><button data-tab="knowledge">تعليمات الموظفين</button><button data-tab="departments">الأقسام</button><button data-tab="doctors">الأطباء</button><button data-tab="staffPositions">المناصب والأسماء الإضافية</button><button data-tab="services">الخدمات</button><button data-tab="documents">المستندات</button></div>
@@ -135,7 +135,7 @@ async function loadStats(){
  const rows=data||[];
  $("visits").textContent=rows.filter(x=>x.event_type==="visit").length;
  $("chats").textContent=rows.filter(x=>x.event_type==="chat").length;
- $("unique").textContent=new Set(rows.map(x=>x.visitor_hash).filter(Boolean)).size;
+ const visitRows=rows.filter(x=>x.event_type==="visit");\n $("unique").textContent=new Set(visitRows.map(x=>x.visitor_hash).filter(Boolean)).size;
  const days=[];
  for(let offset=6;offset>=0;offset--){
   const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-offset);
