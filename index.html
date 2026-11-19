@@ -635,6 +635,15 @@ async function submitAnswerRating(conversationId,rating,host){
 async function send(q){
  q=q.trim();
  if(!q||busy)return;
+ const complaintIntent=/(اريد|أريد|ابي|ابغى|اقدم|أقدم|تقديم|ارسل|أرسل|إرسال|اشتكي|عندي)\\s*.*(شكوى|اقتراح|مقترح)|(شكوى|اقتراح|مقترح)\\s*.*(اريد|أريد|تقديم|ارسال|إرسال|اقدم|أقدم)|^(شكوى|اقتراح|مقترح)$/i.test(q);
+ if(complaintIntent){
+  $("#prompt").value="";
+  $("#prompt").style.height="auto";
+  add(q,"user");
+  add("أكيد. حتى توصل ملاحظتك إلى إدارة المستشفى، فتحت لك خدمة الشكاوى والمقترحات. اختَر (شكوى) أو (اقتراح)، واملأ البيانات. بعد الإرسال راح يظهر رقم المتابعة ورمز الوصول؛ احتفظ بيهما حتى تتابع حالة طلبك.","assistant");
+  openComplaints();
+  return;
+ }
  busy=true;
  $("#send").disabled=true;
  const waitRow=typing("مساعد مستشفى الحيدرية يكتب...");
